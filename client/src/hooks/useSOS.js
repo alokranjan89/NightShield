@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { resolveAlert, sendSOS } from "../services/api.js";
+import { buildSOSPayload, resolveAlert, sendSOS } from "../services/api.js";
 import { socket } from "../services/socket.js";
 import { SOS_STATUS } from "../utils/constants.js";
 import useLocation from "./useLocation.js";
@@ -39,7 +39,31 @@ export default function useSOS({
     };
   }, []);
 
-  async function triggerSOS() {
+  function beginHold() {
+    if (isSending || isSOSActive) {
+      return;
+    }
+
+    setError("");
+    setStatus(SOS_STATUS.holding);
+  }
+
+  function stopHold() {
+    if (status === SOS_STATUS.holding) {
+      setStatus(SOS_STATUS.idle);
+    }
+  }
+
+  async function retryLocation() {
+    setError("");
+    const nextLocation = await requestLocation();
+    if (!isSOSActive && status === SOS_STATUS.error) {
+      setStatus(SOS_STATUS.idle);
+    }
+    return nextLocation;
+  }
+
+  async function triggerSOS(options = {}) {
     setError("");
     setIsSending(true);
     setIsSOSActive(true);
@@ -58,14 +82,15 @@ export default function useSOS({
         }
       }
 
-      const payload = {
+      const payload = buildSOSPayload({
         user,
         contacts,
         location: nextLocation,
         locationError: nextLocationError,
         settings,
-        createdAt: new Date().toISOString(),
-      };
+        source: options.source || "manual",
+        targetContact: options.targetContact || null,
+      });
 
       const alert = await sendSOS(payload);
       setActiveAlert(alert);
@@ -123,6 +148,9 @@ export default function useSOS({
     isFetchingLocation,
     incomingAlert,
     activeAlert,
+    beginHold,
+    stopHold,
+    retryLocation,
     triggerSOS,
     cancelSOS,
     resolveSOS,

@@ -33,6 +33,7 @@ export default function SOSActive() {
     activeAlert,
     settings,
     cancelSOS,
+    retryLocation,
     resolveSOS,
   } = useSOSContext();
   const latestAlert = activeAlert;
@@ -339,6 +340,14 @@ export default function SOSActive() {
     navigate("/");
   }
 
+  async function handleRetryLocation() {
+    try {
+      await retryLocation();
+    } catch {
+      return;
+    }
+  }
+
   return (
     <section className="flex min-h-screen w-full items-center justify-center bg-[#0f172a] px-3 py-4 sm:px-4 sm:py-6">
       <div className="w-full max-w-lg rounded-[1.75rem] border border-rose-400/20 bg-slate-950/92 p-4 text-center shadow-[0_30px_80px_rgba(127,29,29,0.35)] backdrop-blur sm:p-8">
@@ -383,6 +392,15 @@ export default function SOSActive() {
           ) : null}
           {recordingState.error ? (
             <p className="mt-2 text-sm text-rose-300">{recordingState.error}</p>
+          ) : null}
+          {error && error.toLowerCase().includes("location") ? (
+            <button
+              type="button"
+              onClick={handleRetryLocation}
+              className="mt-3 inline-flex min-h-10 items-center justify-center rounded-full border border-sky-400/20 bg-sky-400/10 px-4 py-2 text-sm font-medium text-sky-100 transition hover:bg-sky-400/15"
+            >
+              Retry location
+            </button>
           ) : null}
           <p className="mt-2 text-sm text-slate-500">
             {latestAlert?.status ? `Latest state: ${latestAlert.status}` : "Preparing response flow"}

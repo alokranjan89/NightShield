@@ -8,13 +8,14 @@ export default function Navbar() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:px-5 sm:py-3.5 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:gap-6 lg:px-6">
         <div className="flex items-center justify-between gap-3 lg:min-w-0 lg:justify-start">
           <Link to="/" className="min-w-0 transition hover:opacity-90">
-            <p className="text-sm font-black tracking-[0.12em] text-white sm:text-lg sm:tracking-[0.2em]">
+            <p className="text-sm font-black tracking-[0.12em] text-white">
               {APP_NAME}
             </p>
-            <p className="mt-1 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-medium uppercase tracking-[0.14em] text-emerald-300 sm:px-3 sm:text-[11px] sm:tracking-[0.2em]">
+            <p className="mt-1 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-medium uppercase tracking-[0.14em] text-emerald-300">
               Emergency Ready
             </p>
           </Link>
+
         </div>
 
         <SignedIn>

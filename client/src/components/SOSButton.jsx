@@ -1,7 +1,13 @@
 import { useRef } from "react";
 import useHold from "../hooks/useHold.js";
 
-export default function SOSButton({ delay, disabled, onComplete }) {
+export default function SOSButton({
+  delay,
+  disabled,
+  onComplete,
+  onHoldStart,
+  onHoldCancel,
+}) {
   const ignoreClickRef = useRef(false);
   const { progress, isHolding, start, cancel } = useHold({
     duration: delay,
@@ -14,15 +20,24 @@ export default function SOSButton({ delay, disabled, onComplete }) {
   const circumference = 2 * Math.PI * 68;
   const offset = circumference - circumference * progress;
 
-  function handleClick() {
-    if (ignoreClickRef.current) {
-      ignoreClickRef.current = false;
+  function handleStart() {
+    if (disabled) {
       return;
     }
 
-    if (!disabled) {
-      onComplete?.();
+    onHoldStart?.();
+    start();
+  }
+
+  function handleCancel() {
+    if (ignoreClickRef.current) {
+      ignoreClickRef.current = false;
+      cancel();
+      return;
     }
+
+    onHoldCancel?.();
+    cancel();
   }
 
   return (
@@ -53,25 +68,24 @@ export default function SOSButton({ delay, disabled, onComplete }) {
       <button
         type="button"
         disabled={disabled}
-        onClick={handleClick}
         onKeyDown={(event) => {
           if (event.key === " " || event.key === "Enter") {
             event.preventDefault();
-            start();
+            handleStart();
           }
         }}
         onKeyUp={(event) => {
           if (event.key === " " || event.key === "Enter") {
             event.preventDefault();
-            cancel();
+            handleCancel();
           }
         }}
-        onMouseDown={start}
-        onMouseUp={cancel}
-        onMouseLeave={cancel}
-        onTouchStart={start}
-        onTouchEnd={cancel}
-        onTouchCancel={cancel}
+        onMouseDown={handleStart}
+        onMouseUp={handleCancel}
+        onMouseLeave={handleCancel}
+        onTouchStart={handleStart}
+        onTouchEnd={handleCancel}
+        onTouchCancel={handleCancel}
         className={[
           "relative z-10 flex h-28 w-28 items-center justify-center rounded-full bg-rose-500 text-2xl font-black tracking-[0.22em] text-white shadow-[0_28px_60px_rgba(239,68,68,0.36)] transition sm:h-36 sm:w-36 sm:text-4xl md:h-44 md:w-44",
           isHolding ? "scale-[1.03]" : "sos-pulse",

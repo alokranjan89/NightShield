@@ -37,10 +37,15 @@ export default function Contacts() {
 
   async function handleAlert(contact) {
     try {
-      await triggerSOS();
+      await triggerSOS({
+        source: "contact-alert",
+        targetContact: contact,
+      });
       setActionMessage(`Emergency alert prepared for ${contact.name}.`);
-    } catch {
-      setActionMessage(`Could not prepare alert for ${contact.name}.`);
+    } catch (requestError) {
+      setActionMessage(
+        requestError.message || `Could not prepare alert for ${contact.name}.`
+      );
     }
   }
 
