@@ -1,0 +1,36 @@
+import { Link } from "react-router-dom";
+
+export default function AlertPopup({ alert, onClose }) {
+  if (!alert) {
+    return null;
+  }
+
+  return (
+    <div className="fixed right-4 top-20 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-rose-400/30 bg-slate-950/95 p-4 shadow-[0_20px_50px_rgba(2,6,23,0.65)] backdrop-blur">
+      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-rose-300">
+        Incoming SOS
+      </p>
+      <h3 className="mt-2 text-lg font-semibold text-white">
+        {alert.sender || "Emergency alert received"}
+      </h3>
+      <p className="mt-2 text-sm text-slate-300">
+        A live alert has been received. Open the active screen to review status updates.
+      </p>
+      <div className="mt-4 flex gap-3">
+        <Link
+          to="/sos-active"
+          className="inline-flex flex-1 items-center justify-center rounded-2xl bg-rose-500 px-4 py-3 text-sm font-medium text-white"
+        >
+          Open
+        </Link>
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex items-center justify-center rounded-2xl border border-white/10 px-4 py-3 text-sm text-slate-200"
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+}
