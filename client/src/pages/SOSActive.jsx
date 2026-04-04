@@ -4,8 +4,8 @@ import useSOSContext from "../hooks/useSOSContext.js";
 
 function Step({ label, active, done }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
-      <p className="text-base font-medium text-white">{label}</p>
+    <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm font-medium text-white sm:text-base">{label}</p>
       <span
         className={[
           "text-xs font-semibold uppercase tracking-[0.24em]",
@@ -340,15 +340,15 @@ export default function SOSActive() {
   }
 
   return (
-    <section className="flex min-h-screen w-full items-center justify-center bg-[#0f172a] px-4 py-6">
-      <div className="w-full max-w-md rounded-[2rem] border border-rose-400/20 bg-slate-950/92 p-6 text-center shadow-[0_30px_80px_rgba(127,29,29,0.35)] backdrop-blur sm:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.4em] text-rose-200">
+    <section className="flex min-h-screen w-full items-center justify-center bg-[#0f172a] px-3 py-4 sm:px-4 sm:py-6">
+      <div className="w-full max-w-lg rounded-[1.75rem] border border-rose-400/20 bg-slate-950/92 p-4 text-center shadow-[0_30px_80px_rgba(127,29,29,0.35)] backdrop-blur sm:p-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.32em] text-rose-200 sm:text-sm sm:tracking-[0.4em]">
           Emergency Mode
         </p>
-        <h1 className="mt-4 text-4xl font-black text-white">
+        <h1 className="mt-4 text-3xl font-black text-white sm:text-4xl">
           ALERT SENT
         </h1>
-        <div className="mt-8 space-y-3 text-left">
+        <div className="mt-6 space-y-3 text-left sm:mt-8">
           <Step
             label="Sharing location..."
             active={isFetchingLocation}
@@ -370,11 +370,11 @@ export default function SOSActive() {
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
             Status
           </p>
-          <p className="mt-2 text-base font-medium text-white">
+          <p className="mt-2 text-sm font-medium text-white sm:text-base">
             {error || (isComplete ? "Alert is active." : "Emergency request is running.")}
           </p>
           {location ? (
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 break-words text-sm text-slate-400">
               Coordinates: {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
             </p>
           ) : null}
@@ -402,7 +402,7 @@ export default function SOSActive() {
               className="aspect-video w-full object-cover"
             />
           </div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
               <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
                 Photo
@@ -450,14 +450,14 @@ export default function SOSActive() {
           <button
             type="button"
             onClick={handleStop}
-            className="inline-flex min-h-14 items-center justify-center rounded-2xl bg-rose-500 px-5 py-4 text-base font-semibold text-white"
+            className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-rose-500 px-5 py-4 text-base font-semibold text-white sm:min-h-14"
           >
             STOP / CANCEL
           </button>
           <button
             type="button"
             onClick={handleBack}
-            className="inline-flex min-h-14 items-center justify-center rounded-2xl border border-white/10 px-5 py-4 text-base font-medium text-slate-200"
+            className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/10 px-5 py-4 text-base font-medium text-slate-200 sm:min-h-14"
           >
             Back
           </button>

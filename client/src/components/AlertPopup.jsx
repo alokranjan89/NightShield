@@ -6,7 +6,7 @@ export default function AlertPopup({ alert, onClose }) {
   }
 
   return (
-    <div className="fixed right-4 top-20 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-rose-400/30 bg-slate-950/95 p-4 shadow-[0_20px_50px_rgba(2,6,23,0.65)] backdrop-blur">
+    <div className="fixed left-3 right-3 top-20 z-50 rounded-3xl border border-rose-400/30 bg-slate-950/95 p-4 shadow-[0_20px_50px_rgba(2,6,23,0.65)] backdrop-blur sm:left-auto sm:right-4 sm:w-[22rem]">
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-rose-300">
         Incoming SOS
       </p>

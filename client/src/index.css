@@ -8,12 +8,14 @@
 
 * {
   box-sizing: border-box;
+  min-width: 0;
 }
 
 html,
 body,
 #root {
   min-height: 100%;
+  width: 100%;
 }
 
 html,
@@ -32,11 +34,29 @@ body {
   scrollbar-gutter: stable;
 }
 
+@media (max-width: 640px) {
+  body {
+    scrollbar-gutter: auto;
+  }
+
+  .app-shell {
+    background-size: 28px 28px, 28px 28px, auto, auto, auto;
+  }
+}
+
 button,
 input,
 select,
 textarea {
   font: inherit;
+}
+
+img,
+video,
+svg,
+canvas {
+  display: block;
+  max-width: 100%;
 }
 
 a {
@@ -55,6 +75,12 @@ a {
   background-size: 42px 42px, 42px 42px, auto, auto, auto;
 }
 
+.cl-rootBox,
+.cl-cardBox,
+.cl-card {
+  max-width: 100%;
+}
+
 .sos-pulse {
   animation: sosPulse 1.8s ease-in-out infinite;
 }
@@ -71,5 +97,31 @@ a {
   100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    scrollbar-gutter: auto;
+  }
+
+  .app-shell {
+    background-size: 28px 28px, 28px 28px, auto, auto, auto;
+  }
+
+  .cl-rootBox {
+    width: 100%;
+  }
+
+  .cl-cardBox,
+  .cl-card {
+    width: 100%;
+    max-width: 100%;
+    box-shadow: none;
+  }
+
+  .cl-card {
+    border-radius: 1.5rem;
+    padding: 1rem;
   }
 }

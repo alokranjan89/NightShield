@@ -38,7 +38,7 @@ function AppShell() {
           "flex w-full flex-1 overflow-x-clip",
           isSOSActiveRoute
             ? "max-w-none px-0 py-0"
-            : "mx-auto max-w-6xl px-4 pb-6 pt-4 sm:px-6 md:pb-8 md:pt-5",
+            : "mx-auto max-w-6xl px-3 pb-6 pt-3 sm:px-5 sm:pt-4 md:px-6 md:pb-8 md:pt-5",
         ].join(" ")}
       >
         <Routes>

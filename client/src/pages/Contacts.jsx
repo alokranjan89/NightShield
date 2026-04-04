@@ -45,7 +45,7 @@ export default function Contacts() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-6xl space-y-6">
+    <section className="mx-auto w-full max-w-6xl space-y-6 pb-20 sm:pb-24">
       <div className="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur sm:p-8">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-2xl">
@@ -57,7 +57,7 @@ export default function Contacts() {
               Add contacts, mark one as primary, and keep quick actions close for calling or alerting.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:max-w-sm">
+          <div className="grid grid-cols-1 gap-3 sm:max-w-sm sm:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
               <p className="text-sm text-slate-400">Total contacts</p>
               <p className="mt-2 text-2xl font-black text-white">{contacts.length}</p>
@@ -81,13 +81,13 @@ export default function Contacts() {
       {isFormOpen ? (
         <form onSubmit={handleSubmit} className="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur sm:p-7">
           <div className="grid gap-4 md:grid-cols-3">
-            <input name="name" value={form.name} onChange={handleChange} placeholder="Name" className="rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white outline-none" />
-            <input name="phone" value={form.phone} onChange={handleChange} placeholder="Phone" className="rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white outline-none" />
-            <input name="relation" value={form.relation} onChange={handleChange} placeholder="Relation" className="rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white outline-none" />
+            <input name="name" value={form.name} onChange={handleChange} placeholder="Name" className="min-h-12 rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white outline-none" />
+            <input name="phone" value={form.phone} onChange={handleChange} placeholder="Phone" className="min-h-12 rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white outline-none" />
+            <input name="relation" value={form.relation} onChange={handleChange} placeholder="Relation" className="min-h-12 rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-white outline-none" />
           </div>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <button type="submit" className="rounded-2xl bg-sky-500 px-5 py-3 text-sm font-medium text-white">Save Contact</button>
-            <button type="button" onClick={() => setIsFormOpen(false)} className="rounded-2xl border border-white/10 px-5 py-3 text-sm text-slate-200">Cancel</button>
+            <button type="submit" className="min-h-12 rounded-2xl bg-sky-500 px-5 py-3 text-sm font-medium text-white">Save Contact</button>
+            <button type="button" onClick={() => setIsFormOpen(false)} className="min-h-12 rounded-2xl border border-white/10 px-5 py-3 text-sm text-slate-200">Cancel</button>
           </div>
         </form>
       ) : null}
@@ -122,14 +122,14 @@ export default function Contacts() {
               <div className="mt-5 grid grid-cols-1 gap-3">
                 <a
                   href={`tel:${primaryContact.phone}`}
-                  className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-4 py-3 text-sm font-medium text-white"
+                  className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-sky-500 px-4 py-3 text-sm font-medium text-white"
                 >
                   Call Primary
                 </a>
                 <button
                   type="button"
                   onClick={() => handleAlert(primaryContact)}
-                  className="rounded-2xl bg-rose-500 px-4 py-3 text-sm font-medium text-white"
+                  className="min-h-12 rounded-2xl bg-rose-500 px-4 py-3 text-sm font-medium text-white"
                 >
                   Alert Primary
                 </button>
@@ -147,7 +147,7 @@ export default function Contacts() {
         <button
           type="button"
           onClick={() => setIsFormOpen(true)}
-          className="fixed bottom-6 right-6 inline-flex h-14 w-14 items-center justify-center rounded-full bg-rose-500 text-3xl text-white shadow-[0_18px_40px_rgba(239,68,68,0.35)]"
+          className="fixed bottom-4 right-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-rose-500 text-3xl text-white shadow-[0_18px_40px_rgba(239,68,68,0.35)] sm:bottom-6 sm:right-6"
           aria-label="Add contact"
         >
           +

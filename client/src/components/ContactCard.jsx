@@ -27,7 +27,7 @@ export default function ContactCard({
         ) : null}
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <a
           href={`tel:${normalizePhone(contact.phone || EMERGENCY_NUMBER)}`}
           className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-4 py-3 text-sm font-medium text-white"

@@ -55,7 +55,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <div className="rounded-3xl border border-white/10 bg-white/5 p-5 sm:p-6">
           <p className="text-sm text-slate-400">Total alerts</p>
           <p className="mt-3 text-4xl font-black text-white">{alerts.length}</p>
@@ -93,7 +93,7 @@ export default function Dashboard() {
                 <p className="text-base font-semibold text-white">{alert.type}</p>
                 <p className="text-sm text-slate-400">{formatTime(alert.createdAt)}</p>
               </div>
-              <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.24em] text-slate-200">
+              <span className="inline-flex w-fit rounded-full border border-white/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.24em] text-slate-200">
                 {alert.status}
               </span>
             </div>
