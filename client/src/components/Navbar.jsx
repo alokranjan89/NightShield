@@ -1,11 +1,18 @@
-import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, UserButton, useAuth } from "@clerk/clerk-react";
 import { Link, NavLink } from "react-router-dom";
 import { APP_NAME, NAV_ITEMS } from "../utils/constants.js";
 
 export default function Navbar() {
+  const { isSignedIn } = useAuth();
+
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:px-5 sm:py-3.5 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:gap-6 lg:px-6">
+      <div
+        className={[
+          "mx-auto flex w-full max-w-6xl px-3 py-3 sm:px-5 sm:py-3.5 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:gap-6 lg:px-6",
+          isSignedIn ? "flex-col gap-3" : "items-start justify-between gap-3",
+        ].join(" ")}
+      >
         <div className="flex items-center justify-between gap-3 lg:min-w-0 lg:justify-start">
           <Link to="/" className="min-w-0 transition hover:opacity-90">
             <p className="text-sm font-black tracking-[0.12em] text-white">
@@ -64,7 +71,7 @@ export default function Navbar() {
           <div className="hidden lg:block" />
         </SignedOut>
 
-        <div className="flex items-center justify-end gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
           <NavLink
             to="/sos-active"
             className="inline-flex min-h-10 items-center justify-center rounded-full bg-rose-500 px-3 py-2 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(239,68,68,0.28)] sm:px-4"
