@@ -409,16 +409,6 @@ Planned improvements include:
 - :iphone: better background/mobile emergency support
 
 ---
-
-## :closed_lock_with_key: Security Notes
-
-- `.env` files are ignored by git
-- never commit private credentials
-- review backend auth and rate limiting before production deployment
-- tighten CORS and API protection for public deployment
-
----
-
 ## :handshake: Repository
 
 GitHub: `https://github.com/alokranjan89/NightShield`
