@@ -13,6 +13,10 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, ".env") });
 
 const PORT = process.env.PORT || 5000;
+const allowedOrigins = (process.env.CORS_ORIGIN || process.env.CLIENT_URL || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 // create HTTP server
 const server = createServer(app);
@@ -20,7 +24,14 @@ const server = createServer(app);
 // create socket server
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Socket.IO CORS origin not allowed"));
+    },
+    credentials: true,
   },
 });
 

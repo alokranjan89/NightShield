@@ -299,7 +299,8 @@ VITE_USE_MOCK_API=false
 
 ```env
 PORT=5000
-MONGODB_URI=your_mongodb_connection_string
+MONGO_URI=your_mongodb_connection_string
+CLIENT_URL=http://localhost:5173
 ```
 
 Example files are also included:

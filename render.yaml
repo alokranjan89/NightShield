@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: nightshield-backend
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: MONGO_URI
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
