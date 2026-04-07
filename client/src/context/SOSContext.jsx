@@ -1,8 +1,14 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useMemo, useState } from "react";
+import { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import useSOS from "../hooks/useSOS.js";
-import { getInitialData, saveContacts, saveSettings } from "../services/api.js";
+import {
+  getInitialData,
+  saveAlerts,
+  saveContacts,
+  saveSettings,
+  syncContactsToServer,
+} from "../services/api.js";
 
 export const SOSContext = createContext(null);
 
@@ -33,6 +39,24 @@ export function SOSProvider({ children }) {
     user: mergedUser,
   });
 
+  useEffect(() => {
+    saveAlerts(alerts);
+  }, [alerts]);
+
+  const syncServerContacts = useCallback(
+    async (nextContacts) => {
+      try {
+        await syncContactsToServer({
+          userId: mergedUser.id,
+          contacts: nextContacts,
+        });
+      } catch (error) {
+        console.error("Failed to sync contacts to server", error);
+      }
+    },
+    [mergedUser.id]
+  );
+
   const value = useMemo(
     () => ({
       contacts,
@@ -41,6 +65,7 @@ export function SOSProvider({ children }) {
       user: mergedUser,
       isLoaded,
       isSignedIn,
+      setIncomingAlert: sos.setIncomingAlert,
       addContact(contact) {
         const nextContacts = [
           {
@@ -51,10 +76,12 @@ export function SOSProvider({ children }) {
           ...contacts,
         ];
         setContacts(saveContacts(nextContacts));
+        void syncServerContacts(nextContacts);
       },
       deleteContact(contactId) {
         const nextContacts = contacts.filter((contact) => contact.id !== contactId);
         setContacts(saveContacts(nextContacts));
+        void syncServerContacts(nextContacts);
       },
       markPrimary(contactId) {
         const nextContacts = contacts.map((contact) => ({
@@ -62,6 +89,7 @@ export function SOSProvider({ children }) {
           isPrimary: contact.id === contactId,
         }));
         setContacts(saveContacts(nextContacts));
+        void syncServerContacts(nextContacts);
       },
       updateSettings(partialSettings) {
         const nextSettings = { ...settings, ...partialSettings };
@@ -72,7 +100,17 @@ export function SOSProvider({ children }) {
       },
       ...sos,
     }),
-    [alerts, contacts, isLoaded, isSignedIn, mergedUser, settings, signOut, sos]
+    [
+      alerts,
+      contacts,
+      isLoaded,
+      isSignedIn,
+      mergedUser,
+      settings,
+      signOut,
+      sos,
+      syncServerContacts,
+    ]
   );
 
   return <SOSContext.Provider value={value}>{children}</SOSContext.Provider>;

@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
-import { buildSOSPayload, resolveAlert, sendSOS } from "../services/api.js";
-import { socket } from "../services/socket.js";
+import {
+  buildSOSPayload,
+  resolveAlert,
+  saveUserLocation,
+  sendSOS,
+} from "../services/api.js";
 import { SOS_STATUS } from "../utils/constants.js";
 import useLocation from "./useLocation.js";
 
@@ -24,20 +28,33 @@ export default function useSOS({
   const [activeAlert, setActiveAlert] = useState(null);
 
   useEffect(() => {
-    const handleIncomingAlert = (payload) => {
-      setIncomingAlert(payload);
-    };
-
-    socket.on("sos:incoming", handleIncomingAlert);
-
-    if (!socket.connected) {
-      socket.connect();
+    if (!user?.id || user.id === "guest-user" || !settings.locationEnabled) {
+      return;
     }
 
+    let isCancelled = false;
+
+    async function syncUserLocation() {
+      try {
+        const nextLocation = await requestLocation();
+
+        if (!isCancelled) {
+          await saveUserLocation({
+            userId: user.id,
+            location: nextLocation,
+          });
+        }
+      } catch {
+        return;
+      }
+    }
+
+    syncUserLocation();
+
     return () => {
-      socket.off("sos:incoming", handleIncomingAlert);
+      isCancelled = true;
     };
-  }, []);
+  }, [requestLocation, settings.locationEnabled, user?.id]);
 
   function beginHold() {
     if (isSending || isSOSActive) {
@@ -57,6 +74,10 @@ export default function useSOS({
   async function retryLocation() {
     setError("");
     const nextLocation = await requestLocation();
+    await saveUserLocation({
+      userId: user.id,
+      location: nextLocation,
+    });
     if (!isSOSActive && status === SOS_STATUS.error) {
       setStatus(SOS_STATUS.idle);
     }
@@ -76,6 +97,10 @@ export default function useSOS({
       if (settings.locationEnabled) {
         try {
           nextLocation = await requestLocation();
+          await saveUserLocation({
+            userId: user.id,
+            location: nextLocation,
+          });
         } catch (locationRequestError) {
           nextLocationError =
             locationRequestError.message || "Location could not be fetched.";
@@ -95,15 +120,18 @@ export default function useSOS({
       const alert = await sendSOS(payload);
       setActiveAlert(alert);
       setAlerts((current) => [alert, ...current]);
-      socket.emit("sos:triggered", alert);
       setStatus(SOS_STATUS.sent);
+
       if (nextLocationError) {
         setError("SOS sent without live location.");
       }
+
       return alert;
     } catch (requestError) {
       setError(requestError.message || "Unable to send SOS.");
       setStatus(SOS_STATUS.error);
+      setIsSOSActive(false);
+      setActiveAlert(null);
       throw requestError;
     } finally {
       setIsSending(false);
@@ -131,6 +159,7 @@ export default function useSOS({
 
   function resetSOSState() {
     setActiveAlert(null);
+    setIsSOSActive(false);
     setStatus(SOS_STATUS.idle);
     setError("");
   }
@@ -147,6 +176,7 @@ export default function useSOS({
     location,
     isFetchingLocation,
     incomingAlert,
+    setIncomingAlert,
     activeAlert,
     beginHold,
     stopHold,

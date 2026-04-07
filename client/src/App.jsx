@@ -1,15 +1,26 @@
-import { SignedIn, SignedOut } from "@clerk/clerk-react";
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { SignedIn, SignedOut, useUser } from "@clerk/clerk-react";
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import { useEffect } from "react";
+
 import AlertPopup from "./components/AlertPopup.jsx";
 import Navbar from "./components/Navbar.jsx";
 import { SOSProvider } from "./context/SOSContext.jsx";
 import useSOSContext from "./hooks/useSOSContext.js";
+
 import Contacts from "./pages/Contacts.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Settings from "./pages/Settings.jsx";
 import SOSActive from "./pages/SOSActive.jsx";
+
+import { socket, socketUrl } from "./services/socket";
 
 function ProtectedRoute({ children }) {
   return (
@@ -23,16 +34,50 @@ function ProtectedRoute({ children }) {
 }
 
 function AppShell() {
-  const { incomingAlert, dismissIncomingAlert } = useSOSContext();
+  const { incomingAlert, dismissIncomingAlert, setIncomingAlert } =
+    useSOSContext();
+  const { user } = useUser();
+  const navigate = useNavigate();
   const location = useLocation();
   const isSOSActiveRoute = location.pathname === "/sos-active";
 
+  useEffect(() => {
+    if (!user) return;
+
+    const userId = user.id;
+    const registerSocket = () => {
+      socket.emit("register", userId);
+      console.log("Socket registered:", userId, "via", socketUrl);
+    };
+    const handleAlert = (data) => {
+      console.log("SOS_ALERT received:", data);
+      setIncomingAlert(data);
+      navigate("/sos-active");
+    };
+
+    socket.on("connect", registerSocket);
+    socket.on("SOS_ALERT", handleAlert);
+
+    if (!socket.connected) {
+      socket.connect();
+    } else {
+      registerSocket();
+    }
+
+    return () => {
+      socket.off("connect", registerSocket);
+      socket.off("SOS_ALERT", handleAlert);
+    };
+  }, [navigate, setIncomingAlert, user]);
+
   return (
     <div className="app-shell flex min-h-screen flex-col bg-slate-950 text-slate-100">
-      {!isSOSActiveRoute ? <Navbar /> : null}
-      {!isSOSActiveRoute ? (
+      {!isSOSActiveRoute && <Navbar />}
+
+      {!isSOSActiveRoute && (
         <AlertPopup alert={incomingAlert} onClose={dismissIncomingAlert} />
-      ) : null}
+      )}
+
       <main
         className={[
           "flex w-full flex-1 overflow-x-clip",
@@ -45,6 +90,7 @@ function AppShell() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/sos-active" element={<SOSActive />} />
+
           <Route
             path="/dashboard"
             element={
@@ -53,6 +99,7 @@ function AppShell() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/contacts"
             element={
@@ -61,6 +108,7 @@ function AppShell() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/settings"
             element={
@@ -69,6 +117,7 @@ function AppShell() {
               </ProtectedRoute>
             }
           />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

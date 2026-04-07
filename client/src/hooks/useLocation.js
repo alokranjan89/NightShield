@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 export default function useLocation() {
   const [location, setLocation] = useState(null);
   const [error, setError] = useState("");
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
-  async function requestLocation() {
+  const requestLocation = useCallback(async () => {
     if (!navigator.geolocation) {
       const message = "Location services are not available in this browser.";
       setError(message);
@@ -40,7 +40,7 @@ export default function useLocation() {
     } finally {
       setIsFetchingLocation(false);
     }
-  }
+  }, []);
 
   return {
     location,

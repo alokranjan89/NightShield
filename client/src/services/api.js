@@ -10,9 +10,10 @@ const STORAGE_KEYS = {
   alerts: "nightshield-alerts",
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() || "";
-const USE_MOCK_API =
-  API_BASE_URL === "" || import.meta.env.VITE_USE_MOCK_API === "true";
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() || "";
+const API_BASE_URL =
+  configuredApiBaseUrl || (import.meta.env.DEV ? "http://localhost:5000" : "");
+const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === "true";
 
 function readStorage(key, fallback) {
   if (typeof window === "undefined") {
@@ -36,6 +37,26 @@ function writeStorage(key, value) {
   return value;
 }
 
+function normalizeAlertResponse(response, payload) {
+  return {
+    id: response?.id || response?.sos?._id || `alert-${Date.now()}`,
+    type: response?.type || "Emergency SOS",
+    status: response?.status || "Active",
+    createdAt:
+      response?.createdAt || response?.sos?.createdAt || new Date().toISOString(),
+    message: response?.message || "SOS created and alerts sent",
+    payload: response?.payload || payload,
+    sos: response?.sos || null,
+    contactsNotified: response?.contactsNotified || 0,
+    nearbyUsers: response?.nearbyUsers || 0,
+    location:
+      response?.location ||
+      response?.sos?.location ||
+      payload?.location ||
+      null,
+  };
+}
+
 async function requestJson(path, options = {}) {
   if (!API_BASE_URL) {
     throw new Error("API base URL is not configured.");
@@ -53,7 +74,9 @@ async function requestJson(path, options = {}) {
   const body = isJson ? await response.json().catch(() => null) : null;
 
   if (!response.ok) {
-    throw new Error(body?.message || `Request failed with status ${response.status}.`);
+    throw new Error(
+      body?.message || body?.error || `Request failed with status ${response.status}.`
+    );
   }
 
   return body;
@@ -95,6 +118,7 @@ export function buildSOSPayload({
     },
     contacts: contacts.map((contact) => ({
       id: contact.id,
+      contactUserId: contact.contactUserId || "",
       name: contact.name,
       phone: contact.phone,
       relation: contact.relation,
@@ -103,6 +127,7 @@ export function buildSOSPayload({
     targetContact: targetContact
       ? {
           id: targetContact.id,
+          contactUserId: targetContact.contactUserId || "",
           name: targetContact.name,
           phone: targetContact.phone,
           relation: targetContact.relation,
@@ -114,25 +139,57 @@ export function buildSOSPayload({
 
 export async function sendSOS(data) {
   if (!USE_MOCK_API) {
-    return requestJson("/api/sos", {
+    const response = await requestJson("/api/sos", {
       method: "POST",
       body: JSON.stringify(data),
     });
+
+    return normalizeAlertResponse(response, data);
   }
 
   await new Promise((resolve) => window.setTimeout(resolve, 1200));
 
   const currentAlerts = readStorage(STORAGE_KEYS.alerts, MOCK_RECENT_ALERTS);
-  const nextAlert = {
-    id: `alert-${Date.now()}`,
-    type: "Emergency SOS",
-    status: "Active",
-    createdAt: new Date().toISOString(),
-    payload: data,
-  };
+  const nextAlert = normalizeAlertResponse(
+    {
+      id: `alert-${Date.now()}`,
+      type: "Emergency SOS",
+      status: "Active",
+      createdAt: new Date().toISOString(),
+      payload: data,
+      location: data.location,
+    },
+    data
+  );
 
   writeStorage(STORAGE_KEYS.alerts, [nextAlert, ...currentAlerts]);
   return nextAlert;
+}
+
+export async function saveUserLocation({ userId, location }) {
+  if (!API_BASE_URL || !userId || !location) {
+    return null;
+  }
+
+  return requestJson("/api/users/location", {
+    method: "POST",
+    body: JSON.stringify({
+      userId,
+      lat: location.lat ?? location.latitude,
+      lng: location.lng ?? location.longitude,
+    }),
+  });
+}
+
+export async function syncContactsToServer({ userId, contacts }) {
+  if (!API_BASE_URL || !userId || userId === "guest-user") {
+    return null;
+  }
+
+  return requestJson(`/api/contacts/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify({ contacts }),
+  });
 }
 
 export function saveContacts(contacts) {
@@ -143,10 +200,14 @@ export function saveSettings(settings) {
   return writeStorage(STORAGE_KEYS.settings, settings);
 }
 
+export function saveAlerts(alerts) {
+  return writeStorage(STORAGE_KEYS.alerts, alerts);
+}
+
 export function resolveAlert(alerts, alertId) {
   const nextAlerts = alerts.map((alert) =>
     alert.id === alertId ? { ...alert, status: "Resolved" } : alert
   );
 
-  return writeStorage(STORAGE_KEYS.alerts, nextAlerts);
+  return saveAlerts(nextAlerts);
 }

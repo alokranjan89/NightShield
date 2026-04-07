@@ -1,19 +1,15 @@
-import { useNavigate } from "react-router-dom";
 import useSOSContext from "../hooks/useSOSContext.js";
 import { SETTINGS_OPTIONS } from "../utils/constants.js";
 
 export default function Settings() {
-  const navigate = useNavigate();
   const { settings, updateSettings, triggerSOS } = useSOSContext();
 
   async function handleTestSOS() {
     try {
       await triggerSOS();
     } catch {
-      navigate("/sos-active");
       return;
     }
-    navigate("/sos-active");
   }
 
   return (

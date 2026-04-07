@@ -1,24 +1,18 @@
 import { io } from "socket.io-client";
 
-function createMockSocket() {
-  return {
-    connected: false,
-    connect() {
-      this.connected = true;
-    },
-    on() {},
-    off() {},
-    emit() {},
-  };
-}
-
-const socketUrl =
+const configuredSocketUrl =
   import.meta.env.VITE_SOCKET_URL?.trim() ||
   import.meta.env.VITE_API_BASE_URL?.trim() ||
   "";
 
-export const socket = socketUrl
-  ? io(socketUrl, {
-      autoConnect: false,
-    })
-  : createMockSocket();
+export const socketUrl = configuredSocketUrl || "http://localhost:5000";
+
+export const socket = io(socketUrl, {
+  autoConnect: false,
+});
+
+if (import.meta.env.DEV && typeof window !== "undefined") {
+  window.socket = socket;
+  globalThis.socket = socket;
+  console.log("[socket] debug handle attached to window.socket", socketUrl);
+}

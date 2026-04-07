@@ -12,8 +12,11 @@
   "dependencies": {
     "@clerk/clerk-react": "^5.61.4",
     "@clerk/react": "^6.1.4",
+    "leaflet": "^1.9.4",
+    "leaflet-routing-machine": "^3.2.12",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.14.0",
     "socket.io-client": "^4.8.3"
   },

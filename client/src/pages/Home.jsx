@@ -1,5 +1,4 @@
 import { useAuth } from "@clerk/clerk-react";
-import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import SOSButton from "../components/SOSButton.jsx";
 import StatusIndicator from "../components/StatusIndicator.jsx";
@@ -7,8 +6,8 @@ import { SOS_STATUS } from "../utils/constants.js";
 import useSOSContext from "../hooks/useSOSContext.js";
 
 export default function Home() {
-  const navigate = useNavigate();
   const { isSignedIn } = useAuth();
+  const navigate = useNavigate();
   const {
     settings,
     status,
@@ -16,18 +15,10 @@ export default function Home() {
     triggerSOS,
     isSending,
     location,
-    isSOSActive,
     beginHold,
     stopHold,
     retryLocation,
-    resetSOSState,
   } = useSOSContext();
-
-  useEffect(() => {
-    if (!isSOSActive && (status === "Sent" || status === "Error")) {
-      resetSOSState();
-    }
-  }, [isSOSActive, resetSOSState, status]);
 
   const helperText = error
     ? error
@@ -46,7 +37,7 @@ export default function Home() {
       await triggerSOS();
       navigate("/sos-active");
     } catch {
-      navigate("/sos-active");
+      return;
     }
   }
 
