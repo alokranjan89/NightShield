@@ -37,8 +37,8 @@ function AppShell() {
   const { incomingAlert, dismissIncomingAlert, setIncomingAlert } =
     useSOSContext();
   const { user } = useUser();
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const isSOSActiveRoute = location.pathname === "/sos-active";
 
   useEffect(() => {
@@ -52,11 +52,40 @@ function AppShell() {
     const handleAlert = (data) => {
       console.log("SOS_ALERT received:", data);
       setIncomingAlert(data);
-      navigate("/sos-active");
+
+      if (typeof window !== "undefined" && "Notification" in window) {
+        if (Notification.permission === "granted") {
+          const notification = new Notification("NightShield SOS Alert", {
+            body: data.message || "A nearby emergency alert needs attention.",
+          });
+
+          notification.onclick = () => {
+            window.focus();
+            navigate("/sos-active");
+          };
+        } else if (Notification.permission === "default") {
+          void Notification.requestPermission();
+        }
+      }
+    };
+    const handleResolved = (data) => {
+      console.log("SOS_RESOLVED received:", data);
+      setIncomingAlert((currentAlert) => {
+        if (!currentAlert || currentAlert.id !== data.id) {
+          return currentAlert;
+        }
+
+        return null;
+      });
+
+      if (location.pathname === "/sos-active") {
+        navigate("/", { replace: true });
+      }
     };
 
     socket.on("connect", registerSocket);
     socket.on("SOS_ALERT", handleAlert);
+    socket.on("SOS_RESOLVED", handleResolved);
 
     if (!socket.connected) {
       socket.connect();
@@ -67,8 +96,9 @@ function AppShell() {
     return () => {
       socket.off("connect", registerSocket);
       socket.off("SOS_ALERT", handleAlert);
+      socket.off("SOS_RESOLVED", handleResolved);
     };
-  }, [navigate, setIncomingAlert, user]);
+  }, [location.pathname, navigate, setIncomingAlert, user]);
 
   return (
     <div className="app-shell flex min-h-screen flex-col bg-slate-950 text-slate-100">

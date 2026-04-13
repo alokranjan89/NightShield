@@ -49,6 +49,7 @@ function normalizeAlertResponse(response, payload) {
     sos: response?.sos || null,
     contactsNotified: response?.contactsNotified || 0,
     nearbyUsers: response?.nearbyUsers || 0,
+    evidence: response?.evidence || response?.sos?.evidence || [],
     location:
       response?.location ||
       response?.sos?.location ||
@@ -166,8 +167,64 @@ export async function sendSOS(data) {
   return nextAlert;
 }
 
+export async function resolveSOSSession(alertId) {
+  if (!API_BASE_URL || !alertId) {
+    return null;
+  }
+
+  return requestJson(`/api/sos/${alertId}/resolve`, {
+    method: "PATCH",
+  });
+}
+
+export async function fetchSOSHistory(userId) {
+  if (!API_BASE_URL || !userId || userId === "guest-user") {
+    return [];
+  }
+
+  const response = await requestJson(`/api/sos/history/${userId}`);
+  return Array.isArray(response)
+    ? response.map((item) => normalizeAlertResponse(item, item.payload || null))
+    : [];
+}
+
+export async function uploadSOSEvidence({
+  file,
+  userId,
+  sosId,
+  mediaType,
+  captureAt,
+}) {
+  if (!API_BASE_URL) {
+    throw new Error("API base URL is not configured.");
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("userId", userId);
+  formData.append("sosId", sosId || "session");
+  formData.append("mediaType", mediaType);
+  formData.append("captureAt", captureAt || new Date().toISOString());
+
+  const response = await fetch(`${API_BASE_URL}/api/sos/evidence`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const isJson = response.headers.get("content-type")?.includes("application/json");
+  const body = isJson ? await response.json().catch(() => null) : null;
+
+  if (!response.ok) {
+    throw new Error(
+      body?.message || body?.error || `Upload failed with status ${response.status}.`
+    );
+  }
+
+  return body;
+}
+
 export async function saveUserLocation({ userId, location }) {
-  if (!API_BASE_URL || !userId || !location) {
+  if (!API_BASE_URL || !userId || userId === "guest-user" || !location) {
     return null;
   }
 
