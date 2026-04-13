@@ -7,6 +7,8 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 import L from "leaflet";
 import "leaflet-routing-machine";
+import { startAlarm, stopAlarm } from "../utils/alarm.js";
+import { uploadSOSEvidence } from "../services/api.js";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -120,8 +122,18 @@ export default function SOSActive() {
   const [myLocation, setMyLocation] = useState(null);
   const [cameraError, setCameraError] = useState("");
   const [cameraReady, setCameraReady] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [recordingUrl, setRecordingUrl] = useState("");
+  const [recordingFileName, setRecordingFileName] = useState("");
+  const [uploadedVideo, setUploadedVideo] = useState(null);
+  const [photoCaptures, setPhotoCaptures] = useState([]);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const canvasRef = useRef(null);
+  const recorderRef = useRef(null);
+  const recordingChunksRef = useRef([]);
+  const snapshotIntervalRef = useRef(null);
 
   const isSender = Boolean(activeAlert);
   const alert = activeAlert || incomingAlert;
@@ -129,6 +141,15 @@ export default function SOSActive() {
   const title = useMemo(() => getAlertTitle(alert, isSender), [alert, isSender]);
   const sessionSettings = useMemo(() => getAlertSettings(alert), [alert]);
   const receiverDetails = useMemo(() => getReceiverDetails(alert), [alert]);
+  const evidenceSessionId = activeAlert?.id || alert?.id || "session";
+
+  useEffect(() => {
+    return () => {
+      if (recordingUrl) {
+        URL.revokeObjectURL(recordingUrl);
+      }
+    };
+  }, [recordingUrl]);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -155,49 +176,14 @@ export default function SOSActive() {
       !sessionSettings.soundEnabled ||
       typeof window === "undefined"
     ) {
+      stopAlarm();
       return undefined;
     }
 
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-
-    if (!AudioContextClass) {
-      return undefined;
-    }
-
-    const audioContext = new AudioContextClass();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-
-    oscillator.type = "sawtooth";
-    oscillator.frequency.value = 880;
-    gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.08, audioContext.currentTime + 0.2);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    oscillator.start();
-
-    const intervalId = window.setInterval(() => {
-      const nextFrequency = oscillator.frequency.value === 880 ? 660 : 880;
-      oscillator.frequency.setValueAtTime(nextFrequency, audioContext.currentTime);
-    }, 650);
+    void startAlarm();
 
     return () => {
-      window.clearInterval(intervalId);
-
-      try {
-        gainNode.gain.exponentialRampToValueAtTime(
-          0.0001,
-          audioContext.currentTime + 0.15
-        );
-        oscillator.stop(audioContext.currentTime + 0.2);
-      } catch {
-        return;
-      } finally {
-        window.setTimeout(() => {
-          audioContext.close().catch(() => {});
-        }, 250);
-      }
+      stopAlarm();
     };
   }, [alert, isSender, sessionSettings.soundEnabled]);
 
@@ -213,16 +199,218 @@ export default function SOSActive() {
 
     let isCancelled = false;
 
+    async function uploadEvidence(file, metadata) {
+      if (!activeAlert?.payload?.user?.id) {
+        throw new Error("Missing sender identity for evidence upload.");
+      }
+
+      return uploadSOSEvidence({
+        file,
+        userId: activeAlert.payload.user.id,
+        sosId: evidenceSessionId,
+        ...metadata,
+      });
+    }
+
+    async function startRecording(stream) {
+      if (typeof MediaRecorder === "undefined") {
+        return;
+      }
+
+      const mimeTypes = [
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp8,opus",
+        "video/webm",
+      ];
+      const supportedMimeType = mimeTypes.find((mimeType) =>
+        MediaRecorder.isTypeSupported(mimeType)
+      );
+
+      try {
+        recordingChunksRef.current = [];
+        const recorder = supportedMimeType
+          ? new MediaRecorder(stream, { mimeType: supportedMimeType })
+          : new MediaRecorder(stream);
+
+        recorderRef.current = recorder;
+        recorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            recordingChunksRef.current.push(event.data);
+          }
+        };
+        recorder.onstart = () => {
+          setIsRecording(true);
+        };
+        recorder.onstop = () => {
+          const nextBlob = new Blob(recordingChunksRef.current, {
+            type: recorder.mimeType || "video/webm",
+          });
+
+          if (nextBlob.size === 0) {
+            setIsRecording(false);
+            return;
+          }
+
+          setRecordingUrl((currentUrl) => {
+            if (currentUrl) {
+              URL.revokeObjectURL(currentUrl);
+            }
+
+            return URL.createObjectURL(nextBlob);
+          });
+          const nextFileName = `nightshield-sos-${new Date()
+            .toISOString()
+            .replace(/[:.]/g, "-")}.webm`;
+          setRecordingFileName(nextFileName);
+          setIsUploadingVideo(true);
+          const videoFile = new File([nextBlob], nextFileName, {
+            type: nextBlob.type || "video/webm",
+          });
+
+          void uploadEvidence(videoFile, {
+            mediaType: "video",
+            captureAt: new Date().toISOString(),
+          })
+            .then((result) => {
+              setUploadedVideo(result);
+            })
+            .catch((error) => {
+              setCameraError(error.message || "Video upload failed.");
+            })
+            .finally(() => {
+              setIsUploadingVideo(false);
+            });
+          setIsRecording(false);
+        };
+
+        recorder.start(1000);
+      } catch (error) {
+        setCameraError(error.message || "Unable to start SOS recording.");
+        setIsRecording(false);
+      }
+    }
+
+    async function captureSnapshot() {
+      const videoElement = videoRef.current;
+      const canvasElement = canvasRef.current;
+
+      if (!videoElement || !canvasElement || videoElement.readyState < 2) {
+        return;
+      }
+
+      const width = videoElement.videoWidth;
+      const height = videoElement.videoHeight;
+
+      if (!width || !height) {
+        return;
+      }
+
+      canvasElement.width = width;
+      canvasElement.height = height;
+      const context = canvasElement.getContext("2d");
+
+      if (!context) {
+        return;
+      }
+
+      context.drawImage(videoElement, 0, 0, width, height);
+
+      const dataUrl = canvasElement.toDataURL("image/jpeg", 0.82);
+      const captureId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const capturedAt = new Date().toISOString();
+
+      setPhotoCaptures((current) => [
+        {
+          id: captureId,
+          capturedAt,
+          previewUrl: dataUrl,
+          status: "uploading",
+          cloudUrl: "",
+          error: "",
+        },
+        ...current,
+      ].slice(0, 6));
+
+      const blob = await new Promise((resolve) => {
+        canvasElement.toBlob(
+          (nextBlob) => resolve(nextBlob),
+          "image/jpeg",
+          0.82
+        );
+      });
+
+      if (!blob) {
+        setPhotoCaptures((current) =>
+          current.map((capture) =>
+            capture.id === captureId
+              ? { ...capture, status: "error", error: "Photo capture failed." }
+              : capture
+          )
+        );
+        return;
+      }
+
+      const photoFile = new File([blob], `nightshield-photo-${captureId}.jpg`, {
+        type: "image/jpeg",
+      });
+
+      try {
+        const result = await uploadEvidence(photoFile, {
+          mediaType: "photo",
+          captureAt: capturedAt,
+        });
+
+        setPhotoCaptures((current) =>
+          current.map((capture) =>
+            capture.id === captureId
+              ? {
+                  ...capture,
+                  status: "uploaded",
+                  cloudUrl: result.url,
+                  cloudId: result.publicId,
+                }
+              : capture
+          )
+        );
+      } catch (error) {
+        setPhotoCaptures((current) =>
+          current.map((capture) =>
+            capture.id === captureId
+              ? {
+                  ...capture,
+                  status: "error",
+                  error: error.message || "Photo upload failed.",
+                }
+              : capture
+          )
+        );
+      }
+    }
+
     async function startCamera() {
       try {
         setCameraError("");
+        setPhotoCaptures([]);
+        setUploadedVideo(null);
+        setRecordingUrl((currentUrl) => {
+          if (currentUrl) {
+            URL.revokeObjectURL(currentUrl);
+          }
+
+          return "";
+        });
+        setRecordingFileName("");
+
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: "user",
             width: { ideal: 640 },
             height: { ideal: 480 },
           },
-          audio: false,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+          },
         });
 
         if (isCancelled) {
@@ -236,6 +424,12 @@ export default function SOSActive() {
           videoRef.current.srcObject = stream;
           setCameraReady(true);
         }
+
+        await startRecording(stream);
+        void captureSnapshot();
+        snapshotIntervalRef.current = window.setInterval(() => {
+          void captureSnapshot();
+        }, 5000);
       } catch (error) {
         setCameraReady(false);
         setCameraError(error.message || "Camera permission was denied.");
@@ -246,12 +440,21 @@ export default function SOSActive() {
 
     return () => {
       isCancelled = true;
+      if (snapshotIntervalRef.current) {
+        window.clearInterval(snapshotIntervalRef.current);
+        snapshotIntervalRef.current = null;
+      }
+      if (recorderRef.current && recorderRef.current.state !== "inactive") {
+        recorderRef.current.stop();
+      }
+      recorderRef.current = null;
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
+      setCameraReady(false);
     };
-  }, [alert, isSender, sessionSettings.cameraEnabled]);
+  }, [activeAlert?.payload?.user?.id, alert, evidenceSessionId, isSender, sessionSettings.cameraEnabled]);
 
   function handleExit() {
     if (isSender && activeAlert?.id) {
@@ -277,28 +480,47 @@ export default function SOSActive() {
 
       <div className="px-4 text-center text-sm text-slate-300">{title}</div>
 
-      <div className="grid gap-4 px-4 pb-4 pt-3 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-4 px-4 pb-4 pt-3 lg:grid-cols-[0.95fr_1.05fr]">
         <div className="min-h-[26rem] overflow-hidden rounded-3xl border border-white/10 bg-slate-900/60">
           {isSender ? (
-            <div className="flex h-full min-h-[26rem] flex-col justify-center p-6 sm:p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-rose-300">
-                SOS Active
-              </p>
-              <h2 className="mt-4 text-3xl font-black text-white sm:text-4xl">
-                Emergency session in progress
-              </h2>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Alarm</p>
-                  <p className="mt-2 text-sm font-medium text-white">
-                    {sessionSettings.soundEnabled ? "On" : "Off"}
+            <div className="relative flex h-full min-h-[26rem] flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(244,63,94,0.18),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.12),transparent_30%)] p-6 sm:p-8">
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.12),rgba(15,23,42,0.75))]" />
+              <div className="relative z-10 flex h-full flex-col justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-rose-300">
+                    SOS Active
+                  </p>
+                  <h2 className="mt-4 max-w-xl text-3xl font-black text-white sm:text-4xl">
+                    Emergency evidence capture is running
+                  </h2>
+                  <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300">
+                    Alarm, live camera, automatic photo capture, and secure uploads stay active until you end the session.
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Camera</p>
-                  <p className="mt-2 text-sm font-medium text-white">
-                    {sessionSettings.cameraEnabled ? "On" : "Off"}
-                  </p>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Alarm</p>
+                    <p className="mt-2 text-base font-semibold text-white">
+                      {sessionSettings.soundEnabled ? "Armed" : "Disabled"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Camera</p>
+                    <p className="mt-2 text-base font-semibold text-white">
+                      {sessionSettings.cameraEnabled ? "Recording Evidence" : "Disabled"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Snapshots</p>
+                    <p className="mt-2 text-base font-semibold text-white">{photoCaptures.length}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Cloud Video</p>
+                    <p className="mt-2 text-base font-semibold text-white">
+                      {uploadedVideo?.url ? "Secured" : isUploadingVideo ? "Uploading" : "Pending"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -327,7 +549,7 @@ export default function SOSActive() {
           )}
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 lg:max-h-[82vh] lg:overflow-y-auto lg:pr-1">
           <div
             className={`rounded-3xl p-5 ${
               isSender
@@ -345,45 +567,153 @@ export default function SOSActive() {
             </p>
             <p className="mt-2 text-sm text-white/90">
               {isSender
-                ? `Camera ${sessionSettings.cameraEnabled ? "active" : "disabled"}`
+                ? "Nearby helpers will see the route and location if it is available."
                 : "Follow the route if it is safe"}
             </p>
           </div>
 
           {isSender ? (
-            <div className="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/60">
-              <div className="border-b border-white/10 px-5 py-4">
-                <p className="font-semibold">Camera</p>
+            <>
+              <div className="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/60">
+                <div className="border-b border-white/10 bg-[linear-gradient(135deg,rgba(244,63,94,0.14),rgba(56,189,248,0.06))] px-5 py-4">
+                  <p className="font-semibold">Evidence Camera</p>
+                </div>
+
+                <div className="aspect-video w-full bg-black">
+                  {sessionSettings.cameraEnabled ? (
+                    cameraError ? (
+                      <div className="flex h-full items-center justify-center p-4 text-center text-sm text-amber-200">
+                        {cameraError}
+                      </div>
+                    ) : (
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        muted
+                        playsInline
+                        className="h-full w-full object-cover"
+                      />
+                    )
+                  ) : (
+                    <div className="flex h-full items-center justify-center p-4 text-center text-sm text-slate-400">
+                      Camera disabled.
+                    </div>
+                  )}
+                </div>
+
+                {sessionSettings.cameraEnabled && cameraReady && !cameraError ? (
+                  <div className="grid gap-3 px-5 py-4 text-xs sm:grid-cols-3">
+                    <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-3">
+                      <p className="uppercase tracking-[0.24em] text-emerald-200/80">Camera</p>
+                      <p className="mt-2 font-medium text-emerald-100">Live</p>
+                    </div>
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 p-3">
+                      <p className="uppercase tracking-[0.24em] text-rose-100/80">Recording</p>
+                      <p className="mt-2 font-medium text-white">
+                        {isRecording ? "In progress" : "Stopped"}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-sky-400/20 bg-sky-400/10 p-3">
+                      <p className="uppercase tracking-[0.24em] text-sky-100/80">Uploads</p>
+                      <p className="mt-2 font-medium text-white">
+                        {photoCaptures.filter((capture) => capture.status === "uploaded").length} photos
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
-              <div className="aspect-video w-full bg-black">
-                {sessionSettings.cameraEnabled ? (
-                  cameraError ? (
-                    <div className="flex h-full items-center justify-center p-4 text-center text-sm text-amber-200">
-                      {cameraError}
+              <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold">Cloud Evidence</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
+                    Auto every 5s
+                  </p>
+                </div>
+                <canvas ref={canvasRef} className="hidden" />
+                {recordingUrl || uploadedVideo ? (
+                  <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-white">SOS Recording</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {isUploadingVideo
+                            ? "Uploading video to cloud storage..."
+                            : uploadedVideo?.url
+                            ? "Video stored in cloud storage."
+                            : "Local recording available after session stop."}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-slate-300">
+                        {isUploadingVideo ? "Uploading" : uploadedVideo?.url ? "Secured" : "Local"}
+                      </span>
                     </div>
-                  ) : (
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      muted
-                      playsInline
-                      className="h-full w-full object-cover"
-                    />
-                  )
-                ) : (
-                  <div className="flex h-full items-center justify-center p-4 text-center text-sm text-slate-400">
-                    Camera disabled.
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      {recordingUrl ? (
+                        <a
+                          href={recordingUrl}
+                          download={recordingFileName || "nightshield-sos-recording.webm"}
+                          className="inline-flex rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200"
+                        >
+                          Download local video
+                        </a>
+                      ) : null}
+                      {uploadedVideo?.url ? (
+                        <a
+                          href={uploadedVideo.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white"
+                        >
+                          Open cloud video
+                        </a>
+                      ) : null}
+                    </div>
                   </div>
+                ) : null}
+                {photoCaptures.length > 0 ? (
+                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {photoCaptures.map((capture, index) => (
+                      <div
+                        key={capture.id}
+                        className="overflow-hidden rounded-2xl border border-white/10 bg-black/40"
+                      >
+                        <img
+                          src={capture.previewUrl}
+                          alt={`SOS capture ${index + 1}`}
+                          className="aspect-[4/3] h-full w-full object-cover"
+                        />
+                        <div className="space-y-2 p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-medium text-white">Capture {index + 1}</p>
+                            <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] uppercase tracking-[0.24em] text-slate-300">
+                              {capture.status}
+                            </span>
+                          </div>
+                          {capture.cloudUrl ? (
+                            <a
+                              href={capture.cloudUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex rounded-full bg-sky-500 px-3 py-1 text-xs font-medium text-white"
+                            >
+                              Open cloud photo
+                            </a>
+                          ) : null}
+                          {capture.error ? (
+                            <p className="text-xs text-amber-200">{capture.error}</p>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-slate-400">
+                    Photo captures will upload here while the SOS session is active.
+                  </p>
                 )}
               </div>
-
-              {sessionSettings.cameraEnabled && cameraReady && !cameraError ? (
-                <p className="px-5 py-3 text-xs text-emerald-300">
-                  Camera active
-                </p>
-              ) : null}
-            </div>
+            </>
           ) : (
             <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-5">
               <p className="font-semibold">Sender Details</p>

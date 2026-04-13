@@ -5,7 +5,7 @@ import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Server } from "socket.io";
-import { setIO, users } from "./src/socketStore.js";
+import { registerUserSocket, setIO, unregisterSocket } from "./src/socketStore.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,19 +43,13 @@ io.on("connection", (socket) => {
 
   // register user
   socket.on("register", (userId) => {
-    users[userId] = socket.id;
+    registerUserSocket(userId, socket.id);
     console.log("Registered:", userId, socket.id);
   });
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
-
-    // remove user
-    for (let id in users) {
-      if (users[id] === socket.id) {
-        delete users[id];
-      }
-    }
+    unregisterSocket(socket.id);
   });
 });
 

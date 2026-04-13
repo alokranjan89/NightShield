@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   buildSOSPayload,
   resolveAlert,
+  resolveSOSSession,
   saveUserLocation,
   sendSOS,
 } from "../services/api.js";
+import { unlockAlarmAudio } from "../utils/alarm.js";
 import { SOS_STATUS } from "../utils/constants.js";
 import useLocation from "./useLocation.js";
 
@@ -27,40 +29,67 @@ export default function useSOS({
   const [incomingAlert, setIncomingAlert] = useState(null);
   const [activeAlert, setActiveAlert] = useState(null);
 
-  useEffect(() => {
+  const syncUserLocation = useCallback(async () => {
     if (!user?.id || user.id === "guest-user" || !settings.locationEnabled) {
-      return;
+      return false;
     }
 
+    try {
+      const nextLocation = await requestLocation();
+      await saveUserLocation({
+        userId: user.id,
+        location: nextLocation,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [requestLocation, settings.locationEnabled, user?.id]);
+
+  useEffect(() => {
     let isCancelled = false;
 
-    async function syncUserLocation() {
-      try {
-        const nextLocation = await requestLocation();
-
-        if (!isCancelled) {
-          await saveUserLocation({
-            userId: user.id,
-            location: nextLocation,
-          });
-        }
-      } catch {
+    async function runSync() {
+      if (isCancelled) {
         return;
       }
+
+      await syncUserLocation();
     }
 
-    syncUserLocation();
+    void runSync();
+
+    const intervalId = window.setInterval(() => {
+      void runSync();
+    }, 30000);
+
+    const handleWindowFocus = () => {
+      void runSync();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void runSync();
+      }
+    };
+
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       isCancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [requestLocation, settings.locationEnabled, user?.id]);
+  }, [syncUserLocation]);
 
   function beginHold() {
     if (isSending || isSOSActive) {
       return;
     }
 
+    void unlockAlarmAudio();
     setError("");
     setStatus(SOS_STATUS.holding);
   }
@@ -91,6 +120,10 @@ export default function useSOS({
     setStatus(SOS_STATUS.sending);
 
     try {
+      if (settings.soundEnabled) {
+        await unlockAlarmAudio();
+      }
+
       let nextLocation = null;
       let nextLocationError = "";
 
@@ -145,7 +178,13 @@ export default function useSOS({
     setError("");
   }
 
-  function resolveSOS(alertId) {
+  async function resolveSOS(alertId) {
+    try {
+      await resolveSOSSession(alertId);
+    } catch {
+      // Keep local cleanup even if the resolve request fails.
+    }
+
     setAlerts((current) => resolveAlert(current, alertId));
     setIsSOSActive(false);
     setActiveAlert(null);

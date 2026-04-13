@@ -3,6 +3,7 @@ import { createContext, useCallback, useEffect, useMemo, useState } from "react"
 import { useAuth, useUser } from "@clerk/clerk-react";
 import useSOS from "../hooks/useSOS.js";
 import {
+  fetchSOSHistory,
   getInitialData,
   saveAlerts,
   saveContacts,
@@ -42,6 +43,32 @@ export function SOSProvider({ children }) {
   useEffect(() => {
     saveAlerts(alerts);
   }, [alerts]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function hydrateSOSHistory() {
+      if (!isSignedIn || !mergedUser.id || mergedUser.id === "guest-user") {
+        return;
+      }
+
+      try {
+        const history = await fetchSOSHistory(mergedUser.id);
+
+        if (!isCancelled && history.length > 0) {
+          setAlerts(saveAlerts(history));
+        }
+      } catch (error) {
+        console.error("Failed to fetch SOS history", error);
+      }
+    }
+
+    void hydrateSOSHistory();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isSignedIn, mergedUser.id]);
 
   const syncServerContacts = useCallback(
     async (nextContacts) => {

@@ -4,6 +4,14 @@ export const updateLocation = async (req, res) => {
   try {
     const { userId, lat, lng } = req.body;
 
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return res.status(400).json({ error: "Valid lat and lng are required" });
+    }
+
     const user = await User.findOneAndUpdate(
       { userId },
       {
