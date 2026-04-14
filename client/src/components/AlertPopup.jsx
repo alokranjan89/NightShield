@@ -8,12 +8,12 @@ export default function AlertPopup({ alert, onClose }) {
   const senderName = alert.sender || alert.payload?.user?.name || "Emergency alert received";
   const alertMessage =
     alert.message ||
-    `${senderName} triggered an SOS nearby. Open the active screen to help if it is safe.`;
+    `${senderName} sent an SOS nearby. Open it if you can help safely.`;
 
   return (
     <div className="fixed left-3 right-3 top-20 z-50 rounded-3xl border border-rose-400/30 bg-slate-950/95 p-4 shadow-[0_20px_50px_rgba(2,6,23,0.65)] backdrop-blur sm:left-auto sm:right-4 sm:w-[22rem]">
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-rose-300">
-        Incoming SOS
+        New SOS
       </p>
       <h3 className="mt-2 text-lg font-semibold text-white">
         {senderName}

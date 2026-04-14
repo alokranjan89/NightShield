@@ -63,9 +63,12 @@ async function requestJson(path, options = {}) {
     throw new Error("API base URL is not configured.");
   }
 
+  const authToken = options.getToken ? await options.getToken() : "";
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       "Content-Type": "application/json",
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       ...options.headers,
     },
     ...options,
@@ -138,11 +141,12 @@ export function buildSOSPayload({
   };
 }
 
-export async function sendSOS(data) {
+export async function sendSOS(data, getToken) {
   if (!USE_MOCK_API) {
     const response = await requestJson("/api/sos", {
       method: "POST",
       body: JSON.stringify(data),
+      getToken,
     });
 
     return normalizeAlertResponse(response, data);
@@ -167,22 +171,25 @@ export async function sendSOS(data) {
   return nextAlert;
 }
 
-export async function resolveSOSSession(alertId) {
+export async function resolveSOSSession(alertId, getToken) {
   if (!API_BASE_URL || !alertId) {
     return null;
   }
 
   return requestJson(`/api/sos/${alertId}/resolve`, {
     method: "PATCH",
+    getToken,
   });
 }
 
-export async function fetchSOSHistory(userId) {
+export async function fetchSOSHistory(userId, getToken) {
   if (!API_BASE_URL || !userId || userId === "guest-user") {
     return [];
   }
 
-  const response = await requestJson(`/api/sos/history/${userId}`);
+  const response = await requestJson(`/api/sos/history/${userId}`, {
+    getToken,
+  });
   return Array.isArray(response)
     ? response.map((item) => normalizeAlertResponse(item, item.payload || null))
     : [];
@@ -194,10 +201,13 @@ export async function uploadSOSEvidence({
   sosId,
   mediaType,
   captureAt,
+  getToken,
 }) {
   if (!API_BASE_URL) {
     throw new Error("API base URL is not configured.");
   }
+
+  const authToken = getToken ? await getToken() : "";
 
   const formData = new FormData();
   formData.append("file", file);
@@ -208,6 +218,7 @@ export async function uploadSOSEvidence({
 
   const response = await fetch(`${API_BASE_URL}/api/sos/evidence`, {
     method: "POST",
+    headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
     body: formData,
   });
 
@@ -223,7 +234,7 @@ export async function uploadSOSEvidence({
   return body;
 }
 
-export async function saveUserLocation({ userId, location }) {
+export async function saveUserLocation({ userId, location, getToken }) {
   if (!API_BASE_URL || !userId || userId === "guest-user" || !location) {
     return null;
   }
@@ -235,17 +246,19 @@ export async function saveUserLocation({ userId, location }) {
       lat: location.lat ?? location.latitude,
       lng: location.lng ?? location.longitude,
     }),
+    getToken,
   });
 }
 
-export async function syncContactsToServer({ userId, contacts }) {
+export async function syncContactsToServer({ userId, contacts, getToken }) {
   if (!API_BASE_URL || !userId || userId === "guest-user") {
     return null;
   }
 
   return requestJson(`/api/contacts/${userId}`, {
     method: "PUT",
-    body: JSON.stringify({ contacts }),
+    body: JSON.stringify({ userId, contacts }),
+    getToken,
   });
 }
 

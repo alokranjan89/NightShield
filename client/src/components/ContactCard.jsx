@@ -39,14 +39,14 @@ export default function ContactCard({
           onClick={() => onAlert(contact)}
           className="rounded-2xl bg-rose-500 px-4 py-3 text-sm font-medium text-white"
         >
-          Alert
+          Send alert
         </button>
         <button
           type="button"
           onClick={() => onPrimary(contact.id)}
           className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-200"
         >
-          Primary
+          Make primary
         </button>
         <button
           type="button"

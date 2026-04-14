@@ -19,10 +19,10 @@ export default function Settings() {
         <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <h1 className="text-3xl font-black text-white sm:text-4xl">
-              Emergency behavior
+              SOS settings
             </h1>
             <p className="mt-3 text-sm leading-7 text-slate-400 sm:text-base">
-              Control the delay window and choose which device features stay available during SOS.
+              Choose how the SOS button behaves and which phone features the app can use.
             </p>
           </div>
           <button
@@ -30,7 +30,7 @@ export default function Settings() {
             onClick={handleTestSOS}
             className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-rose-500 px-6 py-4 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(239,68,68,0.25)] sm:w-auto"
           >
-            Test SOS
+            Try SOS
           </button>
         </div>
       </div>
@@ -39,7 +39,7 @@ export default function Settings() {
         <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 sm:p-7">
           <p className="text-base font-semibold text-white">SOS Delay</p>
           <p className="mt-2 max-w-sm text-sm leading-6 text-slate-400">
-            Set how long someone must hold the SOS trigger before the emergency flow starts.
+            Set how long you need to hold the button before the alert is sent.
           </p>
           <div className="mt-6 grid grid-cols-1 gap-3 sm:max-w-xs sm:grid-cols-2">
             {SETTINGS_OPTIONS.delays.map((delay) => (
@@ -64,7 +64,7 @@ export default function Settings() {
           <div className="mb-5">
             <p className="text-base font-semibold text-white">Device Access</p>
             <p className="mt-2 max-w-lg text-sm leading-6 text-slate-400">
-              Choose which browser features NIGHTSHIELD can use during an active emergency session.
+              Choose what the app can use during an active SOS session.
             </p>
           </div>
           <div className="space-y-4">
@@ -80,9 +80,9 @@ export default function Settings() {
               <div>
                 <span className="block font-medium text-white">{label}</span>
                 <span className="mt-1 block text-sm text-slate-400">
-                  {label === "Sound" && "Play audible feedback when an alert is triggered."}
-                  {label === "Camera" && "Allow quick visual capture during emergency use."}
-                  {label === "Location" && "Attach live coordinates when location permission is available."}
+                  {label === "Sound" && "Play the alarm sound after an SOS starts."}
+                  {label === "Camera" && "Allow photos and video during SOS."}
+                  {label === "Location" && "Attach your current location when permission is available."}
                 </span>
               </div>
               <input

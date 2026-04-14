@@ -1,19 +1,34 @@
 import express from "express";
 import cors from "cors";
+import { clerkMiddleware } from "@clerk/express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import "./config/env.js";
+import { buildAllowedOrigins, isAllowedOrigin } from "./config/origin.js";
 import sosRoutes from "./routes/sosRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
-const allowedOrigins = (process.env.CORS_ORIGIN || process.env.CLIENT_URL || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const allowedOrigins = buildAllowedOrigins();
+const apiLimiter = rateLimit({
+  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.disable("x-powered-by");
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin, allowedOrigins)) {
         return callback(null, true);
       }
 
@@ -22,8 +37,10 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(clerkMiddleware());
+app.use(apiLimiter);
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 app.use("/api/sos", sosRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/users", userRoutes);
@@ -34,6 +51,14 @@ app.get("/", (req, res) => {
 
 app.get("/healthz", (req, res) => {
   res.status(200).json({ ok: true });
+});
+
+app.use((err, req, res, next) => {
+  if (err?.message?.includes("CORS")) {
+    return res.status(403).json({ message: "Origin not allowed" });
+  }
+
+  return next(err);
 });
 
 export default app;

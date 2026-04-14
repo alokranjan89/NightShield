@@ -41,10 +41,10 @@ export default function Contacts() {
         source: "contact-alert",
         targetContact: contact,
       });
-      setActionMessage(`Emergency alert prepared for ${contact.name}.`);
+      setActionMessage(`Alert sent with ${contact.name} selected as the main contact.`);
     } catch (requestError) {
       setActionMessage(
-        requestError.message || `Could not prepare alert for ${contact.name}.`
+        requestError.message || `Could not send an alert for ${contact.name}.`
       );
     }
   }
@@ -56,10 +56,10 @@ export default function Contacts() {
           <div className="max-w-2xl">
             <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Contacts</p>
             <h1 className="mt-3 text-3xl font-black text-white sm:text-4xl">
-              Trusted contact list
+              Your emergency contacts
             </h1>
             <p className="mt-3 text-sm leading-7 text-slate-400 sm:text-base">
-              Add contacts, mark one as primary, and keep quick actions close for calling or alerting.
+              Add the people you want to reach quickly. You can mark one as primary and call or alert them from here.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:max-w-sm sm:grid-cols-2">
@@ -112,7 +112,7 @@ export default function Contacts() {
 
         <aside className="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur sm:p-7">
           <p className="text-sm uppercase tracking-[0.24em] text-slate-400">
-            Quick Reach
+            Quick actions
           </p>
           <h2 className="mt-3 text-2xl font-bold text-white">
             Primary contact
@@ -142,7 +142,7 @@ export default function Contacts() {
             </div>
           ) : (
             <p className="mt-4 text-sm leading-6 text-slate-400">
-              Mark one person as primary to keep a fast action target available here.
+              Pick one person as your primary contact so they stay easy to reach.
             </p>
           )}
         </aside>

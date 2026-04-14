@@ -14,7 +14,7 @@ export default function StatusIndicator({ status, message }) {
         styles[status] || styles.Safe,
       ].join(" ")}
     >
-      <p className="uppercase tracking-[0.24em] opacity-80">{status}</p>
+      <p className="tracking-[0.04em] opacity-80">{status}</p>
       {message ? <p className="mt-1 normal-case tracking-normal">{message}</p> : null}
     </div>
   );

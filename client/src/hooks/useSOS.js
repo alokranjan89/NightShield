@@ -15,6 +15,7 @@ export default function useSOS({
   contacts,
   settings,
   user,
+  getToken,
 }) {
   const {
     location,
@@ -39,12 +40,13 @@ export default function useSOS({
       await saveUserLocation({
         userId: user.id,
         location: nextLocation,
+        getToken,
       });
       return true;
     } catch {
       return false;
     }
-  }, [requestLocation, settings.locationEnabled, user?.id]);
+  }, [getToken, requestLocation, settings.locationEnabled, user?.id]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -106,6 +108,7 @@ export default function useSOS({
     await saveUserLocation({
       userId: user.id,
       location: nextLocation,
+      getToken,
     });
     if (!isSOSActive && status === SOS_STATUS.error) {
       setStatus(SOS_STATUS.idle);
@@ -133,6 +136,7 @@ export default function useSOS({
           await saveUserLocation({
             userId: user.id,
             location: nextLocation,
+            getToken,
           });
         } catch (locationRequestError) {
           nextLocationError =
@@ -150,7 +154,7 @@ export default function useSOS({
         targetContact: options.targetContact || null,
       });
 
-      const alert = await sendSOS(payload);
+      const alert = await sendSOS(payload, getToken);
       setActiveAlert(alert);
       setAlerts((current) => [alert, ...current]);
       setStatus(SOS_STATUS.sent);
@@ -180,7 +184,7 @@ export default function useSOS({
 
   async function resolveSOS(alertId) {
     try {
-      await resolveSOSSession(alertId);
+      await resolveSOSSession(alertId, getToken);
     } catch {
       // Keep local cleanup even if the resolve request fails.
     }
