@@ -11,6 +11,7 @@ import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
 const allowedOrigins = buildAllowedOrigins();
+
 const apiLimiter = rateLimit({
   windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 300,
@@ -19,6 +20,7 @@ const apiLimiter = rateLimit({
 });
 
 app.disable("x-powered-by");
+
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -28,7 +30,15 @@ app.use(
 app.use(
   cors({
     origin(origin, callback) {
+      if (!origin) {
+        return callback(null, true);
+      }
+
       if (isAllowedOrigin(origin, allowedOrigins)) {
+        return callback(null, true);
+      }
+
+      if (origin.includes(".vercel.app")) {
         return callback(null, true);
       }
 
@@ -37,10 +47,12 @@ app.use(
     credentials: true,
   })
 );
+
 app.use(clerkMiddleware());
 app.use(apiLimiter);
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+
 app.use("/api/sos", sosRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/users", userRoutes);

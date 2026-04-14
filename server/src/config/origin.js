@@ -10,9 +10,5 @@ export function isAllowedOrigin(origin, allowedOrigins) {
     return true;
   }
 
-  if (allowedOrigins.length === 0) {
-    return false;
-  }
-
   return allowedOrigins.includes(origin);
 }
