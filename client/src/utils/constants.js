@@ -1,4 +1,4 @@
-export const APP_NAME = "NIGHTSHIELD";
+export const APP_NAME = "NightShield";
 
 export const SOS_STATUS = {
   idle: "Safe",
@@ -16,6 +16,7 @@ export const SETTINGS_OPTIONS = {
 
 export const NAV_ITEMS = [
   { to: "/", label: "Home" },
+  { to: "/about", label: "About" },
   { to: "/dashboard", label: "Dashboard" },
   { to: "/contacts", label: "Contacts" },
   { to: "/settings", label: "Settings" },

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
 import useSOSContext from "../hooks/useSOSContext.js";
 
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
@@ -70,13 +71,13 @@ function getAlertLocation(alert) {
 
 function getAlertTitle(alert, isSender) {
   if (isSender) {
-    return alert?.payload?.user?.name || "Your emergency alert";
+    return alert?.payload?.user?.name || "Your SOS";
   }
 
   return (
     alert?.sender ||
     alert?.payload?.user?.name ||
-    "Nearby emergency alert"
+    "Nearby SOS"
   );
 }
 
@@ -111,6 +112,7 @@ function getReceiverDetails(alert) {
 }
 
 export default function SOSActive() {
+  const { getToken } = useAuth();
   const {
     activeAlert,
     incomingAlert,
@@ -208,6 +210,7 @@ export default function SOSActive() {
         file,
         userId: activeAlert.payload.user.id,
         sosId: evidenceSessionId,
+        getToken,
         ...metadata,
       });
     }
@@ -454,7 +457,14 @@ export default function SOSActive() {
       }
       setCameraReady(false);
     };
-  }, [activeAlert?.payload?.user?.id, alert, evidenceSessionId, isSender, sessionSettings.cameraEnabled]);
+  }, [
+    activeAlert?.payload?.user?.id,
+    alert,
+    evidenceSessionId,
+    getToken,
+    isSender,
+    sessionSettings.cameraEnabled,
+  ]);
 
   function handleExit() {
     if (isSender && activeAlert?.id) {
@@ -469,13 +479,13 @@ export default function SOSActive() {
   }
 
   if (!alert) {
-    return <div className="p-5 text-white">No active SOS</div>;
+    return <div className="p-5 text-white">No active SOS right now.</div>;
   }
 
   return (
     <div className="min-h-screen w-full bg-slate-950 text-white">
       <h1 className="py-3 text-center text-xl font-bold">
-        {isSender ? "Emergency Session" : "Nearby Emergency Alert"}
+        {isSender ? "SOS in progress" : "Nearby SOS"}
       </h1>
 
       <div className="px-4 text-center text-sm text-slate-300">{title}</div>
@@ -491,10 +501,10 @@ export default function SOSActive() {
                     SOS Active
                   </p>
                   <h2 className="mt-4 max-w-xl text-3xl font-black text-white sm:text-4xl">
-                    Emergency evidence capture is running
+                    Your SOS is running
                   </h2>
                   <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300">
-                    Alarm, live camera, automatic photo capture, and secure uploads stay active until you end the session.
+                    The alarm, camera, and uploads stay on until you end this session.
                   </p>
                 </div>
 
@@ -508,7 +518,7 @@ export default function SOSActive() {
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
                     <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Camera</p>
                     <p className="mt-2 text-base font-semibold text-white">
-                      {sessionSettings.cameraEnabled ? "Recording Evidence" : "Disabled"}
+                      {sessionSettings.cameraEnabled ? "On" : "Off"}
                     </p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
@@ -518,7 +528,7 @@ export default function SOSActive() {
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
                     <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Cloud Video</p>
                     <p className="mt-2 text-base font-semibold text-white">
-                      {uploadedVideo?.url ? "Secured" : isUploadingVideo ? "Uploading" : "Pending"}
+                      {uploadedVideo?.url ? "Saved" : isUploadingVideo ? "Uploading" : "Waiting"}
                     </p>
                   </div>
                 </div>
@@ -530,7 +540,7 @@ export default function SOSActive() {
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
                 <Marker position={target}>
-                  <Popup>Person in danger</Popup>
+                  <Popup>Alert location</Popup>
                 </Marker>
 
                 {myLocation && (
@@ -563,12 +573,12 @@ export default function SOSActive() {
             <p className="mt-3 text-sm text-white/90">
               {isSender
                 ? `Alarm ${sessionSettings.soundEnabled ? "active" : "disabled"}`
-                : `${receiverDetails.senderName} triggered an SOS nearby`}
+                : `${receiverDetails.senderName} sent an SOS nearby`}
             </p>
             <p className="mt-2 text-sm text-white/90">
               {isSender
-                ? "Nearby helpers will see the route and location if it is available."
-                : "Follow the route if it is safe"}
+                ? "Nearby users can see your location if it was shared."
+                : "Follow the route only if it is safe to do so."}
             </p>
           </div>
 
@@ -576,7 +586,7 @@ export default function SOSActive() {
             <>
               <div className="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/60">
                 <div className="border-b border-white/10 bg-[linear-gradient(135deg,rgba(244,63,94,0.14),rgba(56,189,248,0.06))] px-5 py-4">
-                  <p className="font-semibold">Evidence Camera</p>
+                  <p className="font-semibold">Camera</p>
                 </div>
 
                 <div className="aspect-video w-full bg-black">
@@ -610,7 +620,7 @@ export default function SOSActive() {
                     <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 p-3">
                       <p className="uppercase tracking-[0.24em] text-rose-100/80">Recording</p>
                       <p className="mt-2 font-medium text-white">
-                        {isRecording ? "In progress" : "Stopped"}
+                        {isRecording ? "Recording" : "Stopped"}
                       </p>
                     </div>
                     <div className="rounded-2xl border border-sky-400/20 bg-sky-400/10 p-3">
@@ -627,7 +637,7 @@ export default function SOSActive() {
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-semibold">Cloud Evidence</p>
                   <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                    Auto every 5s
+                    Every 5s
                   </p>
                 </div>
                 <canvas ref={canvasRef} className="hidden" />
@@ -635,13 +645,13 @@ export default function SOSActive() {
                   <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-medium text-white">SOS Recording</p>
+                        <p className="text-sm font-medium text-white">Video</p>
                         <p className="mt-1 text-xs text-slate-400">
                           {isUploadingVideo
-                            ? "Uploading video to cloud storage..."
+                            ? "Uploading video..."
                             : uploadedVideo?.url
-                            ? "Video stored in cloud storage."
-                            : "Local recording available after session stop."}
+                            ? "Video saved."
+                            : "The local video will be ready when the session ends."}
                         </p>
                       </div>
                       <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-slate-300">
@@ -655,7 +665,7 @@ export default function SOSActive() {
                           download={recordingFileName || "nightshield-sos-recording.webm"}
                           className="inline-flex rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200"
                         >
-                          Download local video
+                          Download video
                         </a>
                       ) : null}
                       {uploadedVideo?.url ? (
@@ -665,7 +675,7 @@ export default function SOSActive() {
                           rel="noreferrer"
                           className="inline-flex rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white"
                         >
-                          Open cloud video
+                          Open saved video
                         </a>
                       ) : null}
                     </div>
@@ -697,7 +707,7 @@ export default function SOSActive() {
                               rel="noreferrer"
                               className="inline-flex rounded-full bg-sky-500 px-3 py-1 text-xs font-medium text-white"
                             >
-                              Open cloud photo
+                              Open saved photo
                             </a>
                           ) : null}
                           {capture.error ? (
@@ -709,14 +719,14 @@ export default function SOSActive() {
                   </div>
                 ) : (
                   <p className="mt-4 text-sm text-slate-400">
-                    Photo captures will upload here while the SOS session is active.
+                    Photos taken during SOS will show up here.
                   </p>
                 )}
               </div>
             </>
           ) : (
             <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-5">
-              <p className="font-semibold">Sender Details</p>
+              <p className="font-semibold">Sender details</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Name</p>

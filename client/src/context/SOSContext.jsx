@@ -18,7 +18,7 @@ export function SOSProvider({ children }) {
   const [contacts, setContacts] = useState(initialData.contacts);
   const [settings, setSettings] = useState(initialData.settings);
   const [alerts, setAlerts] = useState(initialData.alerts);
-  const { isLoaded, isSignedIn, signOut } = useAuth();
+  const { isLoaded, isSignedIn, signOut, getToken } = useAuth();
   const { user } = useUser();
 
   const mergedUser = useMemo(
@@ -38,6 +38,7 @@ export function SOSProvider({ children }) {
     contacts,
     settings,
     user: mergedUser,
+    getToken,
   });
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export function SOSProvider({ children }) {
       }
 
       try {
-        const history = await fetchSOSHistory(mergedUser.id);
+        const history = await fetchSOSHistory(mergedUser.id, getToken);
 
         if (!isCancelled && history.length > 0) {
           setAlerts(saveAlerts(history));
@@ -68,7 +69,7 @@ export function SOSProvider({ children }) {
     return () => {
       isCancelled = true;
     };
-  }, [isSignedIn, mergedUser.id]);
+  }, [getToken, isSignedIn, mergedUser.id]);
 
   const syncServerContacts = useCallback(
     async (nextContacts) => {
@@ -76,12 +77,13 @@ export function SOSProvider({ children }) {
         await syncContactsToServer({
           userId: mergedUser.id,
           contacts: nextContacts,
+          getToken,
         });
       } catch (error) {
         console.error("Failed to sync contacts to server", error);
       }
     },
-    [mergedUser.id]
+    [getToken, mergedUser.id]
   );
 
   const value = useMemo(

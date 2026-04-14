@@ -100,6 +100,8 @@ export const createSOS = async (req, res) => {
       return res.status(400).json({ message: "userId is required" });
     }
 
+    const nearbyRecipients = [];
+
     const sos = new SOS({
       userId,
       userName: user?.name || "",
@@ -108,7 +110,7 @@ export const createSOS = async (req, res) => {
       location: normalizedLocation || undefined,
       contactsCount: contacts.length,
       contactsNotified: 0,
-      nearbyUsers: nearbyRecipients.length,
+      nearbyUsers: 0,
       targetContact: targetContact
         ? {
             name: targetContact.name || "",
@@ -125,8 +127,6 @@ export const createSOS = async (req, res) => {
     savedContacts.forEach((contact) => {
       console.log(`Alert sent to ${contact.name} (${contact.phone})`);
     });
-
-    const nearbyRecipients = [];
 
     if (normalizedLocation) {
       const matchedUsers = await User.find({
@@ -226,16 +226,23 @@ export const resolveSOS = async (req, res) => {
   try {
     const io = getIO();
     const { id } = req.params;
+    const authUserId = req.auth?.userId;
+
+    const existingSOS = await SOS.findById(id);
+
+    if (!existingSOS) {
+      return res.status(404).json({ message: "SOS not found" });
+    }
+
+    if (!authUserId || existingSOS.userId !== authUserId) {
+      return res.status(403).json({ message: "Forbidden: you cannot resolve this SOS" });
+    }
 
     const sos = await SOS.findByIdAndUpdate(
       id,
       { status: "resolved", resolvedAt: new Date() },
       { new: true }
     );
-
-    if (!sos) {
-      return res.status(404).json({ message: "SOS not found" });
-    }
 
     (sos.notifiedUserIds || []).forEach((userId) => {
       const socketIds = getUserSocketIds(userId);

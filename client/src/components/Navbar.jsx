@@ -4,6 +4,9 @@ import { APP_NAME, NAV_ITEMS } from "../utils/constants.js";
 
 export default function Navbar() {
   const { isSignedIn } = useAuth();
+  const publicNavItems = NAV_ITEMS.filter(
+    (item) => item.to === "/" || item.to === "/about"
+  );
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur">
@@ -15,19 +18,23 @@ export default function Navbar() {
       >
         <div className="flex items-center justify-between gap-3 lg:min-w-0 lg:justify-start">
           <Link to="/" className="min-w-0 transition hover:opacity-90">
-            <p className="text-sm font-black tracking-[0.12em] text-white">
+            <p className="text-lg font-black tracking-[0.04em] text-white">
               {APP_NAME}
             </p>
-            <p className="mt-1 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-medium uppercase tracking-[0.14em] text-emerald-300">
-              Emergency Ready
+            <p className="mt-1 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-medium text-emerald-300">
+              Personal safety app
             </p>
           </Link>
 
         </div>
 
-        <SignedIn>
-          <nav className="grid grid-cols-2 gap-2 lg:hidden">
-            {NAV_ITEMS.map((item) => (
+        <nav
+          className={[
+            "grid gap-2 lg:hidden",
+            isSignedIn ? "grid-cols-2" : "grid-cols-2",
+          ].join(" ")}
+        >
+          {(isSignedIn ? NAV_ITEMS : publicNavItems).map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -43,12 +50,15 @@ export default function Navbar() {
                 {item.label}
               </NavLink>
             ))}
-          </nav>
-        </SignedIn>
+        </nav>
 
-        <SignedIn>
-          <nav className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 lg:flex lg:justify-self-center">
-            {NAV_ITEMS.map((item) => (
+        <nav
+          className={[
+            "hidden items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 lg:flex lg:justify-self-center",
+            !isSignedIn ? "lg:justify-self-start" : "",
+          ].join(" ")}
+        >
+          {(isSignedIn ? NAV_ITEMS : publicNavItems).map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -64,12 +74,7 @@ export default function Navbar() {
                 {item.label}
               </NavLink>
             ))}
-          </nav>
-        </SignedIn>
-
-        <SignedOut>
-          <div className="hidden lg:block" />
-        </SignedOut>
+        </nav>
 
         <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
           <NavLink

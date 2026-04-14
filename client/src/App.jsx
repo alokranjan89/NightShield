@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, useUser } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useAuth, useUser } from "@clerk/clerk-react";
 import {
   Navigate,
   Route,
@@ -17,6 +17,7 @@ import Contacts from "./pages/Contacts.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
+import About from "./pages/About.jsx";
 import Settings from "./pages/Settings.jsx";
 import SOSActive from "./pages/SOSActive.jsx";
 
@@ -36,18 +37,33 @@ function ProtectedRoute({ children }) {
 function AppShell() {
   const { incomingAlert, dismissIncomingAlert, setIncomingAlert } =
     useSOSContext();
+  const { getToken } = useAuth();
   const { user } = useUser();
   const location = useLocation();
   const navigate = useNavigate();
   const isSOSActiveRoute = location.pathname === "/sos-active";
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      socket.disconnect();
+      return;
+    }
 
     const userId = user.id;
-    const registerSocket = () => {
-      socket.emit("register", userId);
-      console.log("Socket registered:", userId, "via", socketUrl);
+    const connectSocket = async () => {
+      const token = await getToken();
+
+      if (!token) {
+        return;
+      }
+
+      socket.auth = { token };
+
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      console.log("Socket connected:", userId, "via", socketUrl);
     };
     const handleAlert = (data) => {
       console.log("SOS_ALERT received:", data);
@@ -56,7 +72,7 @@ function AppShell() {
       if (typeof window !== "undefined" && "Notification" in window) {
         if (Notification.permission === "granted") {
           const notification = new Notification("NightShield SOS Alert", {
-            body: data.message || "A nearby emergency alert needs attention.",
+            body: data.message || "Someone nearby sent an SOS.",
           });
 
           notification.onclick = () => {
@@ -83,22 +99,15 @@ function AppShell() {
       }
     };
 
-    socket.on("connect", registerSocket);
     socket.on("SOS_ALERT", handleAlert);
     socket.on("SOS_RESOLVED", handleResolved);
-
-    if (!socket.connected) {
-      socket.connect();
-    } else {
-      registerSocket();
-    }
+    void connectSocket();
 
     return () => {
-      socket.off("connect", registerSocket);
       socket.off("SOS_ALERT", handleAlert);
       socket.off("SOS_RESOLVED", handleResolved);
     };
-  }, [location.pathname, navigate, setIncomingAlert, user]);
+  }, [getToken, location.pathname, navigate, setIncomingAlert, user]);
 
   return (
     <div className="app-shell flex min-h-screen flex-col bg-slate-950 text-slate-100">
@@ -118,6 +127,7 @@ function AppShell() {
       >
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
           <Route path="/login" element={<Login />} />
           <Route path="/sos-active" element={<SOSActive />} />
 

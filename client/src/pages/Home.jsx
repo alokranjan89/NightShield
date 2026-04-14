@@ -23,14 +23,14 @@ export default function Home() {
   const helperText = error
     ? error
     : status === "Sending"
-    ? "Preparing your alert and checking live device status."
+    ? "Sending your alert and checking your device."
     : status === SOS_STATUS.holding
-    ? "Keep holding until the ring completes to send the emergency alert."
+    ? "Keep holding to send the alert."
     : status === "Sent"
     ? location
-      ? "Live location is ready and your alert flow is active."
-      : "Your alert flow is active. Location will be added when available."
-    : "Press and hold only when you want to start an emergency alert.";
+      ? "Your alert is live and your location was added."
+      : "Your alert is live. Location will be added if it becomes available."
+    : "Press and hold only if you need help right now.";
 
   async function handleComplete() {
     try {
@@ -57,10 +57,10 @@ export default function Home() {
             Hold for {settings.sosDelay / 1000} seconds
           </p>
           <h1 className="mt-4 text-[1.8rem] font-black leading-[1.1] tracking-tight text-white sm:text-4xl lg:max-w-2xl lg:text-5xl">
-            Fast emergency access with a single focused action.
+            Help is one press away.
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-400 sm:text-base sm:leading-7 lg:mx-0 lg:max-w-lg">
-            Press and hold the SOS button to trigger the active emergency flow.
+            Press and hold the SOS button to send an alert.
           </p>
           <p className="mx-auto mt-2 max-w-xl text-xs leading-6 text-slate-500 sm:text-sm lg:mx-0 lg:max-w-lg">
             {helperText}
@@ -93,11 +93,11 @@ export default function Home() {
             onHoldCancel={stopHold}
           />
           <p className="mt-3 text-sm text-slate-400">
-            Emergency trigger
+            SOS button
           </p>
           {!isSignedIn ? (
             <div className="mt-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-slate-300">
-              Dashboard tools stay private until login
+              Sign in to save contacts and history
             </div>
           ) : null}
         </div>
@@ -106,14 +106,14 @@ export default function Home() {
           <div className="lg:col-span-2">
             <div className="mt-1 flex flex-col items-center justify-center gap-3 border-t border-white/10 pt-4 text-center sm:flex-row sm:justify-between sm:text-left">
               <p className="max-w-2xl text-sm leading-6 text-slate-400">
-                Emergency SOS works immediately, even without sign-in. Log in to
-                manage contacts, settings, and the rest of your private dashboard.
+                You can still use SOS without signing in. Log in if you want to
+                save contacts, settings, and past alerts.
               </p>
               <Link
                 to="/login"
                 className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10 sm:w-auto"
               >
-                Login for full access
+                Sign in
               </Link>
             </div>
           </div>
