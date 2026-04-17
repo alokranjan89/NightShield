@@ -12,6 +12,7 @@
   "dependencies": {
     "@clerk/clerk-react": "^5.61.4",
     "@clerk/react": "^6.1.4",
+    "@vercel/analytics": "^2.0.1",
     "leaflet": "^1.9.4",
     "leaflet-routing-machine": "^3.2.12",
     "react": "^19.2.4",
