@@ -97,7 +97,7 @@ export default function Home() {
           </p>
           {!isSignedIn ? (
             <div className="mt-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-slate-300">
-              Sign in to save contacts and history
+              Guest SOS is available
             </div>
           ) : null}
         </div>
@@ -106,8 +106,8 @@ export default function Home() {
           <div className="lg:col-span-2">
             <div className="mt-1 flex flex-col items-center justify-center gap-3 border-t border-white/10 pt-4 text-center sm:flex-row sm:justify-between sm:text-left">
               <p className="max-w-2xl text-sm leading-6 text-slate-400">
-                You can still use SOS without signing in. Log in if you want to
-                save contacts, settings, and past alerts.
+                You can send a guest SOS immediately. Sign in to save contacts,
+                settings, history, and cloud evidence to your account.
               </p>
               <Link
                 to="/login"

@@ -12,5 +12,19 @@ services:
         value: 22
       - key: MONGO_URI
         sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
       - key: CORS_ORIGIN
         sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: CLOUD_NAME
+        sync: false
+      - key: API_KEY
+        sync: false
+      - key: API_SECRET
+        sync: false
+      - key: SOS_RATE_LIMIT_WINDOW_MS
+        value: 60000
+      - key: SOS_RATE_LIMIT_MAX_REQUESTS
+        value: 20

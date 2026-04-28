@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   buildSOSPayload,
+  isGuestUserId,
   resolveAlert,
   resolveSOSSession,
   saveUserLocation,
@@ -31,7 +32,7 @@ export default function useSOS({
   const [activeAlert, setActiveAlert] = useState(null);
 
   const syncUserLocation = useCallback(async () => {
-    if (!user?.id || user.id === "guest-user" || !settings.locationEnabled) {
+    if (isGuestUserId(user?.id) || !settings.locationEnabled) {
       return false;
     }
 
@@ -105,11 +106,13 @@ export default function useSOS({
   async function retryLocation() {
     setError("");
     const nextLocation = await requestLocation();
-    await saveUserLocation({
-      userId: user.id,
-      location: nextLocation,
-      getToken,
-    });
+    if (!isGuestUserId(user.id)) {
+      await saveUserLocation({
+        userId: user.id,
+        location: nextLocation,
+        getToken,
+      });
+    }
     if (!isSOSActive && status === SOS_STATUS.error) {
       setStatus(SOS_STATUS.idle);
     }
@@ -133,11 +136,13 @@ export default function useSOS({
       if (settings.locationEnabled) {
         try {
           nextLocation = await requestLocation();
-          await saveUserLocation({
-            userId: user.id,
-            location: nextLocation,
-            getToken,
-          });
+          if (!isGuestUserId(user.id)) {
+            await saveUserLocation({
+              userId: user.id,
+              location: nextLocation,
+              getToken,
+            });
+          }
         } catch (locationRequestError) {
           nextLocationError =
             locationRequestError.message || "Location could not be fetched.";

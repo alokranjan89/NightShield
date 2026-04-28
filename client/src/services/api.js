@@ -15,6 +15,10 @@ const API_BASE_URL =
   configuredApiBaseUrl || (import.meta.env.DEV ? "http://localhost:5000" : "");
 const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === "true";
 
+export function isGuestUserId(userId) {
+  return !userId || userId === "guest-user" || String(userId).startsWith("guest-");
+}
+
 function readStorage(key, fallback) {
   if (typeof window === "undefined") {
     return fallback;
@@ -117,7 +121,7 @@ export function buildSOSPayload({
     settings: {
       sosDelay: settings.sosDelay,
       soundEnabled: settings.soundEnabled,
-      cameraEnabled: settings.cameraEnabled,
+      cameraEnabled: !isGuestUserId(user.id) && settings.cameraEnabled,
       locationEnabled: settings.locationEnabled,
     },
     contacts: contacts.map((contact) => ({
@@ -183,7 +187,7 @@ export async function resolveSOSSession(alertId, getToken) {
 }
 
 export async function fetchSOSHistory(userId, getToken) {
-  if (!API_BASE_URL || !userId || userId === "guest-user") {
+  if (!API_BASE_URL || isGuestUserId(userId)) {
     return [];
   }
 
@@ -235,7 +239,7 @@ export async function uploadSOSEvidence({
 }
 
 export async function saveUserLocation({ userId, location, getToken }) {
-  if (!API_BASE_URL || !userId || userId === "guest-user" || !location) {
+  if (!API_BASE_URL || isGuestUserId(userId) || !location) {
     return null;
   }
 
@@ -251,7 +255,7 @@ export async function saveUserLocation({ userId, location, getToken }) {
 }
 
 export async function syncContactsToServer({ userId, contacts, getToken }) {
-  if (!API_BASE_URL || !userId || userId === "guest-user") {
+  if (!API_BASE_URL || isGuestUserId(userId)) {
     return null;
   }
 

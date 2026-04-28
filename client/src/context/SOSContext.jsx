@@ -5,6 +5,7 @@ import useSOS from "../hooks/useSOS.js";
 import {
   fetchSOSHistory,
   getInitialData,
+  isGuestUserId,
   saveAlerts,
   saveContacts,
   saveSettings,
@@ -12,6 +13,23 @@ import {
 } from "../services/api.js";
 
 export const SOSContext = createContext(null);
+
+function getGuestUserId() {
+  if (typeof window === "undefined") {
+    return "guest-user";
+  }
+
+  const storageKey = "nightshield-guest-id";
+  const existingId = window.localStorage.getItem(storageKey);
+
+  if (existingId) {
+    return existingId;
+  }
+
+  const nextId = `guest-${crypto.randomUUID()}`;
+  window.localStorage.setItem(storageKey, nextId);
+  return nextId;
+}
 
 export function SOSProvider({ children }) {
   const initialData = useMemo(() => getInitialData(), []);
@@ -23,7 +41,7 @@ export function SOSProvider({ children }) {
 
   const mergedUser = useMemo(
     () => ({
-      id: user?.id || "guest-user",
+      id: user?.id || getGuestUserId(),
       name:
         user?.fullName ||
         user?.primaryEmailAddress?.emailAddress ||
@@ -49,7 +67,7 @@ export function SOSProvider({ children }) {
     let isCancelled = false;
 
     async function hydrateSOSHistory() {
-      if (!isSignedIn || !mergedUser.id || mergedUser.id === "guest-user") {
+      if (!isSignedIn || isGuestUserId(mergedUser.id)) {
         return;
       }
 
