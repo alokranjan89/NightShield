@@ -10,7 +10,7 @@ export default function StatusIndicator({ status, message }) {
   return (
     <div
       className={[
-        "rounded-2xl border px-4 py-3 text-sm font-medium",
+        "rounded-2xl border px-3 py-2.5 text-xs font-medium sm:px-4 sm:py-3 sm:text-sm",
         styles[status] || styles.Safe,
       ].join(" ")}
     >

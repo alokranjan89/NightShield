@@ -50,22 +50,22 @@ export default function Home() {
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-1 items-center py-1 sm:py-2 md:py-4">
-      <div className="grid w-full gap-5 rounded-[2rem] border border-white/10 bg-slate-900/70 px-4 py-5 shadow-[0_30px_80px_rgba(2,6,23,0.45)] backdrop-blur sm:px-8 sm:py-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-8 lg:px-10">
+    <section className="mx-auto flex w-full max-w-5xl flex-1 items-start py-3 sm:items-center sm:py-2 md:py-4">
+      <div className="grid w-full gap-4 rounded-[1.5rem] border border-white/10 bg-slate-900/70 px-4 py-4 shadow-[0_24px_64px_rgba(2,6,23,0.38)] backdrop-blur sm:gap-5 sm:rounded-[2rem] sm:px-8 sm:py-10 sm:shadow-[0_30px_80px_rgba(2,6,23,0.45)] lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-8 lg:px-10">
         <div className="text-center lg:text-left">
-          <p className="text-xs font-medium uppercase tracking-[0.35em] text-slate-400 sm:text-sm sm:tracking-[0.4em]">
+          <p className="text-[10px] font-medium uppercase tracking-[0.32em] text-slate-400 sm:text-sm sm:tracking-[0.4em]">
             Hold for {settings.sosDelay / 1000} seconds
           </p>
-          <h1 className="mt-4 text-[1.8rem] font-black leading-[1.1] tracking-tight text-white sm:text-4xl lg:max-w-2xl lg:text-5xl">
+          <h1 className="mt-3 text-[1.55rem] font-black leading-[1.12] tracking-tight text-white sm:mt-4 sm:text-4xl lg:max-w-2xl lg:text-5xl">
             Help is one press away.
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-slate-400 sm:text-base sm:leading-7 lg:mx-0 lg:max-w-lg">
+          <p className="mx-auto mt-3 max-w-xl text-xs leading-5 text-slate-400 sm:mt-4 sm:text-base sm:leading-7 lg:mx-0 lg:max-w-lg">
             Press and hold the SOS button to send an alert.
           </p>
-          <p className="mx-auto mt-2 max-w-xl text-xs leading-6 text-slate-500 sm:text-sm lg:mx-0 lg:max-w-lg">
+          <p className="mx-auto mt-1.5 max-w-xl text-[11px] leading-5 text-slate-500 sm:mt-2 sm:text-sm sm:leading-6 lg:mx-0 lg:max-w-lg">
             {helperText}
           </p>
-          <div className="mx-auto mt-6 max-w-md lg:mx-0">
+          <div className="mx-auto mt-4 max-w-md sm:mt-6 lg:mx-0">
             <StatusIndicator
               status={status}
               message={
@@ -92,7 +92,7 @@ export default function Home() {
             onHoldStart={beginHold}
             onHoldCancel={stopHold}
           />
-          <p className="mt-3 text-sm text-slate-400">
+          <p className="mt-2 text-xs text-slate-400 sm:mt-3 sm:text-sm">
             SOS button
           </p>
           {!isSignedIn ? (

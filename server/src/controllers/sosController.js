@@ -177,9 +177,10 @@ export const createSOS = async (req, res) => {
       }
     }
 
+    const uniqueNearbyRecipients = [...new Set(nearbyRecipients)];
     const sentUserIds = new Set();
 
-    nearbyRecipients.forEach((nearbyUserId) => {
+    uniqueNearbyRecipients.forEach((nearbyUserId) => {
       const socketIds = getUserSocketIds(nearbyUserId);
 
       if (io && socketIds.length > 0 && !sentUserIds.has(nearbyUserId)) {
@@ -192,7 +193,7 @@ export const createSOS = async (req, res) => {
           targetContact,
           contactsCount: contacts.length,
           contactsNotified: 0,
-          nearbyUsers: nearbyRecipients.length,
+          nearbyUsers: uniqueNearbyRecipients.length,
           location: normalizedLocation,
           message: `${user?.name || "Someone"} triggered an SOS nearby.`,
           recipientType: "nearby",
@@ -209,8 +210,8 @@ export const createSOS = async (req, res) => {
       }
     });
 
-    sos.notifiedUserIds = nearbyRecipients;
-    sos.nearbyUsers = nearbyRecipients.length;
+    sos.notifiedUserIds = uniqueNearbyRecipients;
+    sos.nearbyUsers = uniqueNearbyRecipients.length;
     await sos.save();
 
     res.status(201).json({

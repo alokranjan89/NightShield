@@ -41,7 +41,7 @@ io.use(async (socket, next) => {
       secretKey: process.env.CLERK_SECRET_KEY,
     });
 
-    const userId = verifiedToken.data?.sub;
+    const userId = verifiedToken?.sub || verifiedToken?.data?.sub;
 
     if (!userId) {
       return next(new Error("Unauthorized socket connection"));
