@@ -22,6 +22,7 @@ import Settings from "./pages/Settings.jsx";
 import SOSActive from "./pages/SOSActive.jsx";
 
 import { socket, socketUrl } from "./services/socket";
+import { playIncomingAlertCue, unlockAlarmAudio } from "./utils/alarm.js";
 
 function ProtectedRoute({ children }) {
   return (
@@ -35,13 +36,29 @@ function ProtectedRoute({ children }) {
 }
 
 function AppShell() {
-  const { incomingAlert, dismissIncomingAlert, setIncomingAlert } =
+  const { incomingAlert, dismissIncomingAlert, setIncomingAlert, settings } =
     useSOSContext();
   const { getToken } = useAuth();
   const { user } = useUser();
   const location = useLocation();
   const navigate = useNavigate();
   const isSOSActiveRoute = location.pathname === "/sos-active";
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      void unlockAlarmAudio();
+    };
+
+    window.addEventListener("pointerdown", unlockAudio, { once: true });
+    window.addEventListener("keydown", unlockAudio, { once: true });
+    window.addEventListener("touchstart", unlockAudio, { once: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -68,6 +85,7 @@ function AppShell() {
     const handleAlert = (data) => {
       console.log("SOS_ALERT received:", data);
       setIncomingAlert(data);
+      void playIncomingAlertCue({ soundEnabled: settings.soundEnabled });
 
       if (typeof window !== "undefined" && "Notification" in window) {
         if (Notification.permission === "granted") {
@@ -107,7 +125,7 @@ function AppShell() {
       socket.off("SOS_ALERT", handleAlert);
       socket.off("SOS_RESOLVED", handleResolved);
     };
-  }, [getToken, location.pathname, navigate, setIncomingAlert, user]);
+  }, [getToken, location.pathname, navigate, setIncomingAlert, settings.soundEnabled, user]);
 
   return (
     <div className="app-shell flex min-h-screen flex-col bg-slate-950 text-slate-100">

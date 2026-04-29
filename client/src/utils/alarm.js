@@ -3,6 +3,7 @@ let oscillator = null;
 let gainNode = null;
 let frequencyIntervalId = null;
 let alarmRunning = false;
+let incomingCueTimeoutIds = [];
 
 function getAudioContext() {
   if (typeof window === "undefined") {
@@ -73,6 +74,69 @@ export async function startAlarm() {
   }, 650);
 
   alarmRunning = true;
+  return true;
+}
+
+export async function playIncomingAlertCue({ soundEnabled = true } = {}) {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if ("vibrate" in navigator) {
+    navigator.vibrate([700, 180, 700, 180, 1000]);
+  }
+
+  if (!soundEnabled) {
+    return true;
+  }
+
+  const context = getAudioContext();
+
+  if (!context) {
+    return false;
+  }
+
+  try {
+    if (context.state === "suspended") {
+      await context.resume();
+    }
+  } catch {
+    return false;
+  }
+
+  if (context.state !== "running") {
+    return false;
+  }
+
+  incomingCueTimeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+  incomingCueTimeoutIds = [];
+
+  [0, 280, 560].forEach((delay, index) => {
+    const timeoutId = window.setTimeout(() => {
+      const cueOscillator = context.createOscillator();
+      const cueGain = context.createGain();
+      const startAt = context.currentTime;
+
+      cueOscillator.type = "square";
+      cueOscillator.frequency.setValueAtTime(index === 1 ? 740 : 980, startAt);
+      cueGain.gain.setValueAtTime(0.0001, startAt);
+      cueGain.gain.exponentialRampToValueAtTime(0.12, startAt + 0.03);
+      cueGain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.2);
+
+      cueOscillator.connect(cueGain);
+      cueGain.connect(context.destination);
+      cueOscillator.start(startAt);
+      cueOscillator.stop(startAt + 0.22);
+
+      cueOscillator.onended = () => {
+        cueOscillator.disconnect();
+        cueGain.disconnect();
+      };
+    }, delay);
+
+    incomingCueTimeoutIds.push(timeoutId);
+  });
+
   return true;
 }
 
