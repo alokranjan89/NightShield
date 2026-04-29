@@ -15,6 +15,7 @@ export default function Home() {
     triggerSOS,
     isSending,
     location,
+    isFetchingLocation,
     beginHold,
     stopHold,
     retryLocation,
@@ -31,6 +32,14 @@ export default function Home() {
       ? "Your alert is live and your location was added."
       : "Your alert is live. Location will be added if it becomes available."
     : "Press and hold only if you need help right now.";
+  const isLocationAvailable = settings.locationEnabled && Boolean(location);
+  const locationStatusText = !settings.locationEnabled
+    ? "Location tracking off"
+    : isFetchingLocation
+    ? "Checking location..."
+    : isLocationAvailable
+    ? "Location active"
+    : "Location not available";
 
   async function handleComplete() {
     try {
@@ -50,7 +59,7 @@ export default function Home() {
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-1 items-start py-3 sm:items-center sm:py-2 md:py-4">
+    <section className="mx-auto flex w-full max-w-5xl flex-1 items-center py-3 sm:py-2 md:py-4">
       <div className="grid w-full gap-4 rounded-[1.5rem] border border-white/10 bg-slate-900/70 px-4 py-4 shadow-[0_24px_64px_rgba(2,6,23,0.38)] backdrop-blur sm:gap-5 sm:rounded-[2rem] sm:px-8 sm:py-10 sm:shadow-[0_30px_80px_rgba(2,6,23,0.45)] lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-8 lg:px-10">
         <div className="text-center lg:text-left">
           <p className="text-[10px] font-medium uppercase tracking-[0.32em] text-slate-400 sm:text-sm sm:tracking-[0.4em]">
@@ -66,6 +75,23 @@ export default function Home() {
             {helperText}
           </p>
           <div className="mx-auto mt-4 max-w-md sm:mt-6 lg:mx-0">
+            <div
+              className={[
+                "mb-3 inline-flex items-center justify-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold",
+                isLocationAvailable
+                  ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+                  : "border-amber-400/20 bg-amber-400/10 text-amber-200",
+              ].join(" ")}
+            >
+              <span
+                className={[
+                  "h-2 w-2 rounded-full",
+                  isLocationAvailable ? "bg-emerald-300" : "bg-amber-300",
+                ].join(" ")}
+                aria-hidden="true"
+              />
+              {locationStatusText}
+            </div>
             <StatusIndicator
               status={status}
               message={
