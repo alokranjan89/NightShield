@@ -1,0 +1,18 @@
+name: NightShield CI
+
+on:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      APP_ENV: ci
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show environment
+        run: echo "Running NightShield in $APP_ENV"
